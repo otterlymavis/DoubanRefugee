@@ -20,11 +20,40 @@ Phase 1 is implemented as a production-ready foundation:
 
 ```text
 backend/       FastAPI app, SQLAlchemy models, services, workers, tests
-frontend/      Next.js App Router UI with Tailwind and shadcn-style primitives
+frontend/      Next.js App Router UI — Dashboard, Library, Review, Exports, Settings
+extension/     Manifest V3 browser extension — scrapes Douban pages and syncs to API
 docs/          Architecture, privacy, migration, and deployment notes
 docker-compose.yml
 .env.example
 ```
+
+## Web App Pages
+
+| Route | Purpose |
+|---|---|
+| `/` | Dashboard — migration wizard, canonical ledger, phase tracker |
+| `/library` | Browse all imported media items; run matching |
+| `/review` | Manual review queue — pick the correct match for uncertain items |
+| `/exports` | Generate and download Letterboxd, Goodreads, RYM, and archive exports |
+| `/settings` | Account info, API URL configuration, account deletion |
+
+## Browser Extension
+
+The extension scrapes your Douban interest list pages (watched movies, read
+books, listened albums and their ratings, dates, and reviews) and pushes the
+data directly to the DoubanRefugee API.
+
+**Install:**
+```bash
+# 1. Generate icons (Python stdlib only — no pip install needed)
+cd extension
+python scripts/generate-icons.py
+
+# 2. Load in Chrome
+#    chrome://extensions → Developer mode → Load unpacked → select extension/
+```
+
+See [extension/README.md](extension/README.md) for the full guide.
 
 ## Quick Start
 
