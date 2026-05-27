@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DoubanRefugee</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Local test extractor</p>
+        <h1>DoubanRefugee</h1>
+        <p class="hint">Extract visible Douban entries from this tab and import them into your local API.</p>
+      </header>
+
+      <label>
+        API base URL
+        <input id="apiBase" type="url" value="http://localhost:8000">
+      </label>
+
+      <label>
+        Media type
+        <select id="mediaType">
+          <option value="movie">Movie</option>
+          <option value="book">Book</option>
+          <option value="music">Music</option>
+        </select>
+      </label>
+
+      <div class="actions">
+        <button id="extractButton" type="button">Extract page</button>
+        <button id="importButton" type="button" disabled>Import to API</button>
+      </div>
+
+      <section class="status">
+        <div id="statusText">Open a Douban subject/list page, then extract.</div>
+        <pre id="preview" aria-live="polite"></pre>
+      </section>
+
+      <footer>
+        <a id="webAppLink" href="http://localhost:3000" target="_blank" rel="noreferrer">Open web app</a>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

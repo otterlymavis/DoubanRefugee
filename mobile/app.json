@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "DoubanRefugee",
+    "slug": "douban-refugee",
+    "description": "Mobile companion for preserving and exporting Douban cultural history.",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "doubanrefugee",
+    "platforms": ["ios", "android"],
+    "githubUrl": "https://github.com/otterlymavis/DoubanRefugee",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.otterlymavis.doubanrefugee",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.otterlymavis.doubanrefugee",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    }
+  }
+}

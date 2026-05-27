@@ -24,7 +24,7 @@ const sampleItems: CanonicalMedia[] = [
   {
     media_type: "movie",
     source_platform: "douban",
-    source_id: "1292720",
+    source_id: "1305690",
     titles: { zh: "阿飞正传", en: "Days of Being Wild", original: "阿飛正傳" },
     year: 1990,
     rating: { value: 4.5, scale: 5 },

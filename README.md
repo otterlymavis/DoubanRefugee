@@ -21,6 +21,8 @@ Phase 1 is implemented as a production-ready foundation:
 ```text
 backend/       FastAPI app, SQLAlchemy models, services, workers, tests
 frontend/      Next.js App Router UI with Tailwind and shadcn-style primitives
+extension/     Manifest V3 test extension for local Douban extraction
+mobile/        Expo React Native app for Android and iOS
 docs/          Architecture, privacy, migration, and deployment notes
 docker-compose.yml
 .env.example
@@ -57,6 +59,28 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Test extension:
+
+```text
+Open chrome://extensions, enable Developer Mode, choose Load unpacked,
+and select the extension/ folder.
+```
+
+With the backend running at `http://localhost:8000`, open a Douban page, click
+the extension icon, extract the page, and import the payload into the local API.
+
+Mobile app:
+
+```bash
+cd mobile
+npm ci
+npm run android
+```
+
+Use `npm run ios` on macOS or open the Expo development build on an iOS device.
+The app can import verified demo records or pasted Douban HTML and then call
+the same matching and export APIs as the web client.
 
 The Vercel CLI is not installed in this environment. Installing it with
 `npm i -g vercel` will unlock workflows such as `vercel env pull`,
