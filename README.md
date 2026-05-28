@@ -10,6 +10,9 @@ No backend. No database. No accounts. No hosting bill.
 
 - Scrapes Douban movie, book, and music user pages, using `/collect` for
   completed items and `/wish` for wanted/watchlist entries.
+- Scrapes Douban personal broadcast/status pages from `/statuses`, including
+  text, images, attached cards, topics, reposted content, visible comments, and
+  interaction counts when Douban exposes them.
 - Preserves ratings, marked dates, tags, short reviews/comments, source links,
   poster URLs, release dates, creators, and countries when Douban exposes them
   on the user history page.
@@ -18,6 +21,9 @@ No backend. No database. No accounts. No hosting bill.
 - Exports separate Letterboxd watched-history and Letterboxd watchlist CSV
   files, plus transfer CSV files for Filmarks, Goodreads, and RateYourMusic.
 - Exports a full `douban-refugee-backup.json` file that can be re-imported.
+- Exports Douban statuses as Markdown or `douban-status-backup.json`.
+- Exports Notion-ready CSV files for media libraries and status databases, plus
+  status Markdown that Notion can import as pages.
 - Keeps the transfer step user-controlled: download the generated file, then
   upload/import it on the destination site where that site supports imports.
 
@@ -58,6 +64,16 @@ that JSON in the web app. The extension automatically reads both `/collect` and
 section ends or the safety limit is reached. Leave the extension's local web app
 address as `http://localhost:3000` unless you serve the static frontend somewhere
 else.
+
+For broadcast/status backup, open
+`https://www.douban.com/people/<id>/statuses`, choose a page range in the
+extension's Status backup section, download the status JSON, then import it in
+the web app's Status Backup panel. The web app can export the imported statuses
+as Markdown, Notion status CSV, or backup JSON.
+
+For Notion, import `notion-douban-media.csv` or `notion-douban-statuses.csv` as
+a new Notion database. You can also import the status Markdown file as Notion
+pages if you prefer a narrative archive.
 
 For Letterboxd, upload `letterboxd.csv` through the normal account import flow
 and upload `letterboxd-watchlist.csv` through Letterboxd's watchlist import

@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --background: 45 22% 96%;
-  --foreground: 188 28% 10%;
-  --card: 44 28% 98%;
-  --card-foreground: 188 28% 10%;
-  --muted: 190 14% 90%;
-  --muted-foreground: 190 8% 38%;
-  --border: 190 14% 82%;
-  --input: 190 14% 82%;
-  --ring: 174 72% 32%;
-  --primary: 174 72% 28%;
+  --background: 84 18% 96%;
+  --foreground: 202 30% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 202 30% 11%;
+  --muted: 190 18% 92%;
+  --muted-foreground: 202 11% 39%;
+  --border: 196 16% 82%;
+  --input: 196 16% 82%;
+  --ring: 174 76% 27%;
+  --primary: 174 74% 25%;
   --primary-foreground: 0 0% 100%;
-  --accent: 16 85% 54%;
+  --accent: 355 72% 50%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 72% 45%;
   --radius: 0.5rem;
@@ -25,11 +25,7 @@
 }
 
 body {
-  background:
-    linear-gradient(90deg, rgba(16, 111, 105, 0.06) 1px, transparent 1px),
-    linear-gradient(rgba(16, 111, 105, 0.05) 1px, transparent 1px),
-    hsl(var(--background));
-  background-size: 34px 34px;
+  background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
@@ -39,6 +35,15 @@ body {
 }
 
 .ledger-panel {
-  box-shadow: 0 18px 60px rgba(15, 59, 56, 0.12);
+  box-shadow: none;
+}
+
+.surface-grid {
+  background: hsl(var(--background));
+}
+
+.scrollbar-thin {
+  scrollbar-color: hsl(var(--border)) transparent;
+  scrollbar-width: thin;
 }
 

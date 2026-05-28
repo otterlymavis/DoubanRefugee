@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { type CanonicalMedia, mergeItems, parseJsonItems, renderExport } from "../src/lib/local-export";
+import { mergeStatuses, parseStatusJson, renderStatusBackupJson, renderStatusMarkdown, renderStatusNotionCsv } from "../src/lib/status-backup";
 
 const realDoubanItems: CanonicalMedia[] = [
   {
@@ -102,6 +103,7 @@ assert.deepEqual(
 const letterboxd = renderExport(merged, "letterboxd", "movie");
 assert.equal(letterboxd.filename, "letterboxd.csv");
 assert.equal(letterboxd.content.split("\n")[0], "Title,Year,Rating,WatchedDate,Review,Tags");
+assert.equal(rowCount(letterboxd.content), 2, "Letterboxd watched export should include only completed movies");
 assertIncludes(letterboxd.content, "In the Mood for Love");
 assertIncludes(letterboxd.content, "Days of Being Wild");
 assertDoesNotInclude(letterboxd.content, "2046");
@@ -110,12 +112,14 @@ assertDoesNotInclude(letterboxd.content, "The Three-Body Problem");
 const letterboxdWatchlist = renderExport(merged, "letterboxd-watchlist", "movie");
 assert.equal(letterboxdWatchlist.filename, "letterboxd-watchlist.csv");
 assert.equal(letterboxdWatchlist.content.split("\n")[0], "Title,Year,Tags");
+assert.equal(rowCount(letterboxdWatchlist.content), 1, "Letterboxd watchlist export should include only wanted movies");
 assertIncludes(letterboxdWatchlist.content, "2046");
 assertDoesNotInclude(letterboxdWatchlist.content, "In the Mood for Love");
 
 const filmarks = renderExport(merged, "filmarks", "movie");
 assert.equal(filmarks.filename, "filmarks.csv");
 assert.equal(filmarks.content.split("\n")[0], "title,year,rating,watched_date,comment");
+assert.equal(rowCount(filmarks.content), 2, "Filmarks export should include only completed movies");
 assertIncludes(filmarks.content, "In the Mood for Love");
 assertIncludes(filmarks.content, "Days of Being Wild");
 assertDoesNotInclude(filmarks.content, "2046");
@@ -124,6 +128,7 @@ assertDoesNotInclude(filmarks.content, "OK Computer");
 const goodreads = renderExport(merged, "goodreads", "book");
 assert.equal(goodreads.filename, "goodreads.csv");
 assert.equal(goodreads.content.split("\n")[0], "Title,Author,My Rating,Date Read,My Review");
+assert.equal(rowCount(goodreads.content), 1, "Goodreads export should include only completed books");
 assertIncludes(goodreads.content, "The Three-Body Problem");
 assertIncludes(goodreads.content, "Liu Cixin");
 assertDoesNotInclude(goodreads.content, "Book on the wishlist");
@@ -132,9 +137,21 @@ assertDoesNotInclude(goodreads.content, "Days of Being Wild");
 const rateYourMusic = renderExport(merged, "rateyourmusic", "music");
 assert.equal(rateYourMusic.filename, "rateyourmusic.csv");
 assert.equal(rateYourMusic.content.split("\n")[0], "Artist,Release,Rating,Date,Review");
+assert.equal(rowCount(rateYourMusic.content), 1, "RateYourMusic export should include only completed music");
 assertIncludes(rateYourMusic.content, "Radiohead");
 assertIncludes(rateYourMusic.content, "OK Computer");
 assertDoesNotInclude(rateYourMusic.content, "The Three-Body Problem");
+
+const notionMedia = renderExport(merged, "notion");
+assert.equal(notionMedia.filename, "notion-douban-media.csv");
+assert.equal(
+  notionMedia.content.split("\n")[0],
+  "Name,Media Type,Collection Status,Rating,Rating Scale,Date,Year,Release Date,Creators,Countries,Review,Tags,Douban URL,Poster URL,IMDb,ISBN,Artist,Barcode",
+);
+assert.equal(rowCount(notionMedia.content), 6, "Notion media export should include the whole local media library");
+assertIncludes(notionMedia.content, "In the Mood for Love");
+assertIncludes(notionMedia.content, "The Three-Body Problem");
+assertIncludes(notionMedia.content, "OK Computer");
 
 const backup = renderExport(merged, "backup");
 assert.equal(backup.filename, "douban-refugee-backup.json");
@@ -148,7 +165,54 @@ assert.deepEqual(
   new Set(["movie:1291557", "movie:1305690", "movie:1308857", "book:2567698", "book:1000001", "music:1394653"]),
 );
 
-console.log("Local export tests passed for Letterboxd watched/watchlist, Filmarks, Goodreads, RateYourMusic, and backup JSON.");
+const statusBackup = parseStatusJson(JSON.stringify({
+  statuses: [
+    {
+      source_platform: "douban",
+      source_id: "status-1",
+      source_url: "https://www.douban.com/people/example/status/1/",
+      author: { name: "Example User", uid: "example", link: "https://www.douban.com/people/example/" },
+      created_at: "2024-04-01 12:30",
+      activity: "推荐",
+      content: "A preserved Douban broadcast with an image, comments, and a card.",
+      images: [{ url: "https://img.example/status.jpg", alt: "status image" }],
+      card: { title: "Linked thing", url: "https://www.douban.com/example", description: "Attached recommendation card." },
+      comments: [{ author: { name: "Friend" }, content: "Nice backup." }],
+      like_count: 2,
+      reshare_count: 1,
+      comment_count: 1,
+    },
+    {
+      source_platform: "douban",
+      source_id: "status-2",
+      author: { name: "Example User" },
+      created_at: "2024-04-02 08:00",
+      content: "A reshared status.",
+      reshared_status: { author: { name: "Original Author" }, content: "Original text." },
+    },
+  ],
+}));
+const mergedStatuses = mergeStatuses([statusBackup[0]], statusBackup);
+assert.equal(mergedStatuses.length, 2, "status imports should merge by Douban status id without duplicates");
+const statusMarkdown = renderStatusMarkdown(mergedStatuses, "Example User");
+assert.match(statusMarkdown.filename, /^douban-statuses-example-user-\d{4}-\d{2}-\d{2}\.md$/);
+assertIncludes(statusMarkdown.content, "Douban Status Backup - Example User");
+assertIncludes(statusMarkdown.content, "A preserved Douban broadcast");
+assertIncludes(statusMarkdown.content, "Responses:");
+assertIncludes(statusMarkdown.content, "Reshared status:");
+const statusJson = renderStatusBackupJson(mergedStatuses);
+assert.equal(statusJson.filename, "douban-status-backup.json");
+assert.equal(JSON.parse(statusJson.content).statuses.length, 2);
+const notionStatuses = renderStatusNotionCsv(mergedStatuses);
+assert.equal(notionStatuses.filename, "notion-douban-statuses.csv");
+assert.equal(
+  notionStatuses.content.split("\n")[0],
+  "Name,Created At,Author,Status Type,Activity,Content,Source URL,Images,Card,Topic,Reshared Content,Comments,Likes,Reshares,Responses",
+);
+assertIncludes(notionStatuses.content, "A preserved Douban broadcast");
+assertIncludes(notionStatuses.content, "Friend: Nice backup.");
+
+console.log("Local export tests passed for media transfer files, Notion CSVs, backup JSON, and Douban status Markdown/JSON backups.");
 
 function assertIncludes(content: string, expected: string) {
   assert.ok(content.includes(expected), `Expected export to include ${expected}`);
@@ -156,4 +220,8 @@ function assertIncludes(content: string, expected: string) {
 
 function assertDoesNotInclude(content: string, unexpected: string) {
   assert.ok(!content.includes(unexpected), `Expected export not to include ${unexpected}`);
+}
+
+function rowCount(content: string) {
+  return content.split("\n").length - 1;
 }

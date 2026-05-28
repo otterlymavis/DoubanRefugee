@@ -403,6 +403,215 @@ async function scrapeDoubanHistory({ mediaType, maxPages }) {
   };
 }
 
+function statusIdFromRoot(root) {
+  return root.getAttribute("data-sid") || root.id?.replace(/^status-/, "") || root.querySelector("a[href*='/status/']")?.href?.match(/\/status(?:es)?\/(\d+)/)?.[1] || "";
+}
+
+function authorFromElement(element) {
+  if (!element) return { name: "", uid: "", link: "" };
+  const href = element.href || element.getAttribute?.("href") || "";
+  return {
+    name: compact(element.textContent || ""),
+    uid: href.match(/people\/([^/]+)/)?.[1] || "",
+    link: href ? absoluteUrl(href, window.location.href) : "",
+  };
+}
+
+function parseCountNear(root, patterns) {
+  const text = compact(root.textContent || "");
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return Number(match[1] || 0);
+  }
+  return undefined;
+}
+
+function cleanStatusContent(value) {
+  return compact(value)
+    .replace(/^(转发[:：]\s*)+/, "转发：")
+    .replace(/function\s*\([^)]*\)\s*\{.*?\}/g, "")
+    .trim();
+}
+
+function firstText(root, selectors) {
+  for (const selector of selectors) {
+    const element = root.querySelector(selector);
+    const text = compact(element?.textContent || "");
+    if (text) return text;
+  }
+  return "";
+}
+
+function extractStatusCard(root) {
+  const card = root.querySelector(".card, .status-card, .attachment, .rec-sec, .block-card");
+  if (!card) return null;
+  const link = card.querySelector("a[href]");
+  const title = compact(card.querySelector(".title, h3, h4, a")?.textContent || link?.textContent || "");
+  const description = compact(card.querySelector(".desc, .abstract, .content, p")?.textContent || "");
+  const url = link ? absoluteUrl(link.getAttribute("href") || link.href, window.location.href) : "";
+  return title || description || url ? { title, description, url } : null;
+}
+
+function extractStatusTopic(root) {
+  const link = root.querySelector("a[href*='/topic/'], a[href*='douban.com/group/topic/']");
+  if (!link) return null;
+  return {
+    title: compact(link.textContent || "") || "Topic",
+    url: absoluteUrl(link.getAttribute("href") || link.href, window.location.href),
+  };
+}
+
+function extractVisibleComments(root) {
+  return Array.from(root.querySelectorAll(".lite-comment-item, .comment-item, .comments-items li"))
+    .map((comment) => {
+      const authorElement = comment.querySelector(".lite-comment-item-author, .author, a[href*='/people/']");
+      const content = compact(comment.querySelector(".lite-comment-item-content, .content, p")?.textContent || comment.textContent || "");
+      return {
+        author: authorFromElement(authorElement),
+        content,
+      };
+    })
+    .filter((comment) => comment.content);
+}
+
+function extractResharedStatus(root) {
+  const reshared = root.querySelector(".status-reshared-wrapper .status-item, .status-real-wrapper, .reshared-status, blockquote");
+  if (!reshared) return null;
+  const author = authorFromElement(reshared.querySelector(".lnk-people, .user-name, a[href*='/people/']"));
+  const content = cleanStatusContent(firstText(reshared, [".status-saying", ".status-content", ".text", ".content", "p", "blockquote"]));
+  const timeElement = reshared.querySelector(".created_at, .lnk-time, a[href*='/status/']");
+  return content ? {
+    author,
+    content,
+    created_at: timeElement?.getAttribute("title") || compact(timeElement?.textContent || ""),
+    source_url: timeElement?.href ? absoluteUrl(timeElement.href, window.location.href) : "",
+  } : null;
+}
+
+function extractSingleDoubanStatus(root, pageUrl = window.location.href) {
+  if (root.closest(".status-real-wrapper") && root.closest(".status-reshared-wrapper")) return undefined;
+  const sourceId = statusIdFromRoot(root);
+  if (!sourceId) return undefined;
+
+  const timeElement = root.querySelector(".created_at, .lnk-time, a[href*='/status/']");
+  const author = authorFromElement(root.querySelector(".lnk-people, .user-name, a[href*='/people/']"));
+  const sourceUrl = timeElement?.href ? absoluteUrl(timeElement.href, pageUrl) : `${pageUrl.replace(/[?#].*$/, "")}/status/${sourceId}/`;
+  const content = cleanStatusContent(
+    firstText(root, [
+      ".status-saying blockquote p",
+      ".status-saying",
+      ".status-content",
+      ".text",
+      ".content blockquote p",
+      ".content p",
+      "blockquote p",
+    ]),
+  );
+
+  const images = Array.from(root.querySelectorAll(".status-images img, .topic-pics img, .pics-wrapper img, .photo-item img"))
+    .map((image) => {
+      const src = image.getAttribute("src") || image.getAttribute("data-original") || "";
+      if (!src) return undefined;
+      return {
+        url: absoluteUrl(src.replace("/small/", "/large/").replace("/medium/", "/large/"), pageUrl),
+        alt: image.getAttribute("alt") || "image",
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    source_platform: "douban",
+    source_id: sourceId,
+    source_url: sourceUrl,
+    status_type: root.getAttribute("data-atype") || "",
+    author,
+    created_at: timeElement?.getAttribute("title") || timeElement?.getAttribute("data-time") || compact(timeElement?.textContent || ""),
+    activity: compact(root.querySelector(".activity")?.textContent || ""),
+    rating: compact(root.querySelector(".rating-stars, [class*='allstar'], [class*='rating']")?.textContent || ""),
+    content,
+    images,
+    card: extractStatusCard(root),
+    topic: extractStatusTopic(root),
+    reshared_status: extractResharedStatus(root),
+    comments: extractVisibleComments(root),
+    like_count: parseCountNear(root.querySelector(".actions, .status-actions") || root, [/赞\(?(\d+)\)?/, /like\(?(\d+)\)?/i]),
+    reshare_count: parseCountNear(root.querySelector(".actions, .status-actions") || root, [/转发\(?(\d+)\)?/, /reshare\(?(\d+)\)?/i]),
+    comment_count: parseCountNear(root.querySelector(".actions, .status-actions") || root, [/回应\(?(\d+)\)?/, /评论\(?(\d+)\)?/, /comment\(?(\d+)\)?/i]),
+  };
+}
+
+function extractDoubanStatuses(documentLike = document, pageUrl = window.location.href) {
+  const roots = Array.from(documentLike.querySelectorAll(".status-item, [data-sid]"));
+  const seen = new Set();
+  const statuses = [];
+  for (const root of roots) {
+    const status = extractSingleDoubanStatus(root, pageUrl);
+    if (status && !seen.has(status.source_id)) {
+      seen.add(status.source_id);
+      statuses.push(status);
+    }
+  }
+  return statuses;
+}
+
+function userNameFromStatusPage(documentLike = document, pageUrl = window.location.href) {
+  return compact(documentLike.querySelector("h1, .info h1")?.textContent || "") || pageUrl.match(/\/people\/([^/]+)/)?.[1] || "Douban user";
+}
+
+function statusPageUrl(pageNumber, currentUrl = window.location.href) {
+  const url = new URL(currentUrl);
+  url.searchParams.set("p", String(pageNumber));
+  return url.toString();
+}
+
+function statusPageNumber(url = window.location.href) {
+  try {
+    return Number(new URL(url).searchParams.get("p") || "1") || 1;
+  } catch {
+    return 1;
+  }
+}
+
+async function scrapeDoubanStatuses({ startPage, endPage, requestId }) {
+  const start = Math.max(1, Math.floor(Number(startPage) || statusPageNumber()));
+  const end = Math.max(start, Math.floor(Number(endPage) || start));
+  const bySource = new Map();
+  const pages = [];
+  let cancelled = false;
+
+  for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
+    const pageUrl = statusPageUrl(pageNumber);
+    const documentLike = pageUrl === window.location.href ? document : await fetchDoubanDocument(pageUrl);
+    const statuses = extractDoubanStatuses(documentLike, pageUrl);
+    for (const status of statuses) bySource.set(status.source_id, status);
+    pages.push({ page: pageNumber, url: pageUrl, title: documentLike.title, status_count: statuses.length });
+
+    chrome.runtime.sendMessage({
+      type: "DOUBAN_REFUGEE_STATUS_PROGRESS",
+      requestId,
+      page: pageNumber,
+      total: end - start + 1,
+      status_count: statuses.length,
+    }).catch(() => {});
+
+    const stop = await chrome.storage.local.get({ statusScrapeCancelRequestId: "" });
+    if (stop.statusScrapeCancelRequestId === requestId) {
+      cancelled = true;
+      break;
+    }
+    if (pageNumber < end) await delay(PAGE_DELAY_MS);
+  }
+
+  return {
+    statuses: Array.from(bySource.values()),
+    pages,
+    cancelled,
+    user_name: userNameFromStatusPage(),
+    start_page: start,
+    end_page: end,
+  };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message?.type?.startsWith("DOUBAN_REFUGEE_")) return false;
 
@@ -431,6 +640,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             title: document.title,
             url: window.location.href,
             media_type: message.mediaType || detectMediaType(),
+          },
+        });
+        return;
+      }
+
+      if (message.type === "DOUBAN_REFUGEE_SCRAPE_STATUSES") {
+        const result = await scrapeDoubanStatuses(message);
+        sendResponse({
+          ok: true,
+          ...result,
+          page: {
+            title: document.title,
+            url: window.location.href,
+            media_type: "status",
           },
         });
         return;

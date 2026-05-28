@@ -25,6 +25,7 @@ const exportTargets: { destination: Destination; label: string; mediaType?: Medi
   { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie" },
   { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book" },
   { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music" },
+  { destination: "notion", label: "Notion media database CSV", primary: true },
   { destination: "backup", label: "Full backup JSON", primary: true },
 ];
 
@@ -106,11 +107,8 @@ export default function App() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>LOCAL-ONLY</Text>
-          </View>
           <Text style={styles.title}>DoubanRefugee</Text>
-          <Text style={styles.subtitle}>Import scraped Douban movie, book, or music history JSON and share transfer files from this device.</Text>
+          <Text style={styles.subtitle}>Import Douban JSON and share transfer or backup files.</Text>
         </View>
 
         <Panel title="Import">
@@ -232,51 +230,44 @@ function messageFrom(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f8f5ec" },
-  page: { gap: 16, padding: 18, paddingBottom: 36 },
-  header: { gap: 8, paddingTop: 10, paddingBottom: 6 },
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#def1ed",
-    borderRadius: 99,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  safe: { flex: 1, backgroundColor: "#f3f6f1" },
+  page: { gap: 14, padding: 16, paddingBottom: 34 },
+  header: {
+    borderBottomColor: "#d9e2df",
+    borderBottomWidth: 1,
+    gap: 8,
+    paddingBottom: 14,
   },
-  badgeText: { color: "#087f78", fontSize: 11, fontWeight: "700", letterSpacing: 0.8 },
-  title: { color: "#172c2b", fontSize: 36, fontWeight: "700", letterSpacing: -1 },
-  subtitle: { color: "#546663", fontSize: 15, lineHeight: 22 },
+  title: { color: "#14252b", fontSize: 28, fontWeight: "700", letterSpacing: 0 },
+  subtitle: { color: "#51646a", fontSize: 14, lineHeight: 21 },
   panel: {
-    backgroundColor: "#fffdf8",
-    borderColor: "#dce4e1",
-    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    borderColor: "#d9e2df",
+    borderRadius: 8,
     borderWidth: 1,
     gap: 10,
     padding: 14,
-    shadowColor: "#102f2d",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 2,
   },
-  panelTitle: { color: "#172c2b", fontSize: 18, fontWeight: "700", marginBottom: 2 },
-  label: { color: "#465d5a", fontSize: 12, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
+  panelTitle: { color: "#14252b", fontSize: 17, fontWeight: "700", marginBottom: 2 },
+  label: { color: "#40555b", fontSize: 12, fontWeight: "700", letterSpacing: 0, textTransform: "uppercase" },
   input: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d5dfdc",
-    borderRadius: 10,
+    backgroundColor: "#f9fbfa",
+    borderColor: "#cbd8d6",
+    borderRadius: 7,
     borderWidth: 1,
-    color: "#172c2b",
+    color: "#14252b",
     fontSize: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  jsonInput: { minHeight: 112 },
+  jsonInput: { minHeight: 120 },
   row: { flexDirection: "row", gap: 8 },
   exportGrid: { gap: 8 },
   button: {
     alignItems: "center",
-    borderColor: "#cddad7",
-    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    borderColor: "#cbd8d6",
+    borderRadius: 7,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
@@ -284,28 +275,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
   },
-  buttonPrimary: { backgroundColor: "#087f78", borderColor: "#087f78" },
+  buttonPrimary: { backgroundColor: "#0f766e", borderColor: "#0f766e" },
   buttonDisabled: { opacity: 0.5 },
-  buttonPressed: { opacity: 0.8 },
-  buttonText: { color: "#27413e", fontSize: 13, fontWeight: "700", textAlign: "center" },
+  buttonPressed: { opacity: 0.78 },
+  buttonText: { color: "#20363c", fontSize: 13, fontWeight: "700", textAlign: "center" },
   buttonTextPrimary: { color: "#ffffff" },
   metrics: { flexDirection: "row", gap: 8 },
-  metric: { backgroundColor: "#eef5f3", borderRadius: 10, flex: 1, padding: 10 },
-  metricValue: { color: "#172c2b", fontSize: 20, fontWeight: "700" },
-  metricLabel: { color: "#647773", fontSize: 11, textTransform: "uppercase" },
-  empty: { color: "#647773", fontSize: 14, paddingVertical: 8 },
-  mediaRow: { borderTopColor: "#e8eeec", borderTopWidth: 1, flexDirection: "row", gap: 10, paddingTop: 10 },
+  metric: { backgroundColor: "#f3f6f1", borderColor: "#d9e2df", borderRadius: 7, borderWidth: 1, flex: 1, padding: 10 },
+  metricValue: { color: "#14252b", fontSize: 20, fontWeight: "700" },
+  metricLabel: { color: "#63777d", fontSize: 11, textTransform: "uppercase" },
+  empty: { color: "#63777d", fontSize: 14, paddingVertical: 8 },
+  mediaRow: { borderTopColor: "#e5ece9", borderTopWidth: 1, flexDirection: "row", gap: 10, paddingTop: 11 },
   mediaMain: { flex: 1, gap: 3 },
-  mediaTitle: { color: "#172c2b", fontSize: 14, fontWeight: "600" },
-  mediaMeta: { color: "#647773", fontSize: 12 },
-  rating: { color: "#087f78", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, fontWeight: "700" },
+  mediaTitle: { color: "#14252b", fontSize: 14, fontWeight: "600" },
+  mediaMeta: { color: "#63777d", fontSize: 12 },
+  rating: { color: "#0f766e", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, fontWeight: "700" },
   status: {
     alignItems: "center",
-    backgroundColor: "#def1ed",
-    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    borderColor: "#cbd8d6",
+    borderRadius: 8,
+    borderWidth: 1,
     flexDirection: "row",
     gap: 10,
     padding: 12,
   },
-  statusText: { color: "#27413e", flex: 1, fontSize: 13, lineHeight: 19 },
+  statusText: { color: "#33474d", flex: 1, fontSize: 13, lineHeight: 19 },
 });

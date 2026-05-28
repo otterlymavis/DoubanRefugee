@@ -1,6 +1,6 @@
 export type MediaType = "movie" | "book" | "music";
 export type CollectionStatus = "completed" | "watchlist" | "watching" | "watched";
-export type Destination = "letterboxd" | "letterboxd-watchlist" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
+export type Destination = "letterboxd" | "letterboxd-watchlist" | "filmarks" | "goodreads" | "rateyourmusic" | "notion" | "backup";
 
 export type CanonicalMedia = {
   media_type: MediaType;
@@ -197,6 +197,51 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         item.consumed_date || "",
         item.review || "",
       ]);
+    case "notion":
+      return csvFile(
+        "notion-douban-media.csv",
+        [
+          "Name",
+          "Media Type",
+          "Collection Status",
+          "Rating",
+          "Rating Scale",
+          "Date",
+          "Year",
+          "Release Date",
+          "Creators",
+          "Countries",
+          "Review",
+          "Tags",
+          "Douban URL",
+          "Poster URL",
+          "IMDb",
+          "ISBN",
+          "Artist",
+          "Barcode",
+        ],
+        scoped,
+        (item) => [
+          titleFor(item),
+          item.media_type,
+          item.collection_status || "",
+          item.rating?.value || "",
+          item.rating?.scale || "",
+          item.consumed_date || item.marked_date || "",
+          item.year || "",
+          item.release_date || "",
+          (item.creators || []).join(" / "),
+          (item.countries || []).join(" / "),
+          item.review || "",
+          (item.tags || []).join(", "),
+          item.source_url || "",
+          item.poster_url || "",
+          item.external_ids?.imdb || "",
+          item.external_ids?.isbn || "",
+          item.external_ids?.artist || "",
+          item.external_ids?.barcode || "",
+        ],
+      );
     case "backup":
       return {
         filename: "douban-refugee-backup.json",
@@ -293,7 +338,7 @@ function creatorFor(item: CanonicalMedia, fallbackKey: "artist" | "author") {
 
 function scopedItems(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType) {
   const typed = mediaType ? items.filter((item) => item.media_type === mediaType) : items;
-  if (destination === "backup") return typed;
+  if (destination === "backup" || destination === "notion") return typed;
   if (destination === "letterboxd-watchlist") {
     return typed.filter((item) => item.media_type === "movie" && item.collection_status === "watchlist");
   }
