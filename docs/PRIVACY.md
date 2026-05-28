@@ -7,7 +7,7 @@ DoubanRefugee is local-only by design.
 - No backend.
 - No account.
 - No Douban password storage.
-- No server-side scraping.
+- No server-side scraping. Scraping runs only in the user's browser tab.
 - No remote database.
 - No telemetry.
 
@@ -15,7 +15,8 @@ DoubanRefugee is local-only by design.
 
 - The web app stores the working library in browser `localStorage`.
 - The mobile app stores the working library in device local storage.
-- The extension only extracts the active page and creates JSON for the user.
+- The extension extracts the active page or paginated Douban history pages using
+  the user's existing browser session, then creates JSON for the user.
 
 ## User Control
 

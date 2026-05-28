@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "DoubanRefugee Test Extractor",
+  "name": "DoubanRefugee Transfer Extractor",
   "version": "0.1.0",
-  "description": "Extract visible Douban media entries into a local JSON backup.",
+  "description": "Scrape your own Douban history into local transfer files.",
   "permissions": ["activeTab", "clipboardWrite", "scripting", "storage", "tabs"],
   "host_permissions": ["https://*.douban.com/*"],
   "action": {

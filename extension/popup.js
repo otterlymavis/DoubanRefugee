@@ -1,12 +1,15 @@
 const DEFAULTS = {
   mediaType: "movie",
+  maxPages: "10",
   webAppUrl: "http://localhost:3000"
 };
 
 let extractedPayload = undefined;
 
 const webAppUrlInput = document.querySelector("#webAppUrl");
+const maxPagesInput = document.querySelector("#maxPages");
 const mediaTypeInput = document.querySelector("#mediaType");
+const scrapeButton = document.querySelector("#scrapeButton");
 const extractButton = document.querySelector("#extractButton");
 const copyButton = document.querySelector("#copyButton");
 const downloadButton = document.querySelector("#downloadButton");
@@ -37,18 +40,28 @@ async function getActiveTab() {
 async function loadSettings() {
   const stored = await chrome.storage.local.get(DEFAULTS);
   webAppUrlInput.value = stored.webAppUrl || DEFAULTS.webAppUrl;
+  maxPagesInput.value = stored.maxPages || DEFAULTS.maxPages;
   mediaTypeInput.value = stored.mediaType || DEFAULTS.mediaType;
   webAppLink.href = normalizeUrl(stored.webAppUrl || DEFAULTS.webAppUrl);
 }
 
 async function saveSettings() {
   const webAppUrl = normalizeUrl(webAppUrlInput.value);
+  const maxPages = normalizeMaxPages(maxPagesInput.value);
+  maxPagesInput.value = maxPages;
   await chrome.storage.local.set({
+    maxPages,
     mediaType: mediaTypeInput.value,
     webAppUrl
   });
   webAppLink.href = webAppUrl;
   return webAppUrl;
+}
+
+function normalizeMaxPages(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULTS.maxPages;
+  return String(Math.max(1, Math.min(50, Math.floor(parsed))));
 }
 
 async function extractPage() {
@@ -84,6 +97,50 @@ async function extractPage() {
   showPreview({ page: response.page, items: extractedPayload.items.slice(0, 5) });
 }
 
+async function scrapeHistory() {
+  await saveSettings();
+  const tab = await getActiveTab();
+
+  if (!tab.url || !tab.url.includes("douban.com")) {
+    throw new Error("Open your douban.com collection/history page first.");
+  }
+
+  const response = await requestExtraction(tab.id, {
+    type: "DOUBAN_REFUGEE_SCRAPE_HISTORY",
+    mediaType: mediaTypeInput.value,
+    maxPages: Number(maxPagesInput.value)
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "The paged history scraper did not respond.");
+  }
+
+  extractedPayload = {
+    exported_at: new Date().toISOString(),
+    source_profile: {
+      client: "douban-refugee-extension",
+      page: response.page,
+      scrape: {
+        max_pages: response.max_pages,
+        pages: response.pages || [],
+        reached_max_pages: Boolean(response.reached_max_pages)
+      }
+    },
+    items: response.items || []
+  };
+
+  const hasItems = extractedPayload.items.length > 0;
+  copyButton.disabled = !hasItems;
+  downloadButton.disabled = !hasItems;
+  const limitNote = response.reached_max_pages ? " Increase the page limit and scrape again if your history is longer." : "";
+  setStatus(`Scraped ${extractedPayload.items.length} item(s) from ${response.pages?.length || 0} page(s).${limitNote} Download JSON, then import it in the web app.`);
+  showPreview({
+    page: response.page,
+    scraped_pages: response.pages?.length || 0,
+    items: extractedPayload.items.slice(0, 5)
+  });
+}
+
 async function requestExtraction(tabId, message) {
   try {
     return await chrome.tabs.sendMessage(tabId, message);
@@ -114,9 +171,23 @@ function downloadJson() {
   setStatus("Downloaded douban-refugee-import.json.");
 }
 
+scrapeButton.addEventListener("click", async () => {
+  scrapeButton.disabled = true;
+  extractButton.disabled = true;
+  setStatus("Scraping paginated Douban history from this tab...");
+  try {
+    await scrapeHistory();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : String(error));
+  } finally {
+    scrapeButton.disabled = false;
+    extractButton.disabled = false;
+  }
+});
+
 extractButton.addEventListener("click", async () => {
   extractButton.disabled = true;
-  setStatus("Extracting from active Douban tab...");
+  setStatus("Extracting current Douban page...");
   try {
     await extractPage();
   } catch (error) {

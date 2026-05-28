@@ -12,9 +12,7 @@ this shape:
       "source_platform": "douban",
       "source_id": "1291557",
       "titles": {
-        "zh": "花样年华",
-        "en": "In the Mood for Love",
-        "original": "花樣年華"
+        "en": "In the Mood for Love"
       },
       "year": 2000,
       "rating": {

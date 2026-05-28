@@ -1,17 +1,22 @@
 # DoubanRefugee
 
-DoubanRefugee is a local-only tool for backing up Douban movie, book, and music
-history and converting it into portable files.
+DoubanRefugee is a local-only migration tool for scraping your own Douban movie,
+book, and music history, then converting that history into transfer files for
+other tracking sites.
 
 No backend. No database. No accounts. No hosting bill.
 
 ## What It Does
 
-- Imports JSON from the browser extension.
-- Imports pasted Douban HTML in the web app.
+- Scrapes paginated Douban collection/history pages from your logged-in browser
+  session.
+- Imports scraped Douban JSON or pasted Douban HTML in the web app.
 - Stores the working library in browser or mobile local storage.
-- Exports CSV files for Letterboxd, Filmarks, Goodreads, and RateYourMusic.
+- Exports transfer CSV files for Letterboxd, Filmarks, Goodreads, and
+  RateYourMusic.
 - Exports a full `douban-refugee-backup.json` file that can be re-imported.
+- Keeps the transfer step user-controlled: download the generated file, then
+  upload/import it on the destination site where that site supports imports.
 
 ## Repository Layout
 
@@ -42,9 +47,15 @@ Open chrome://extensions, enable Developer Mode, choose Load unpacked,
 and select the extension/ folder.
 ```
 
-Open a Douban page, click the extension icon, download JSON, then import that
-JSON in the web app. Leave the extension's local web app address as
-`http://localhost:3000` unless you serve the static frontend somewhere else.
+Open your own Douban collection/history page, such as a movie `collect` page,
+click the extension icon, choose how many paginated pages to scrape, download
+JSON, then import that JSON in the web app. Leave the extension's local web app
+address as `http://localhost:3000` unless you serve the static frontend
+somewhere else.
+
+For Letterboxd, upload the generated `letterboxd.csv` through Letterboxd's
+import flow. Other destinations receive best-effort transfer CSVs that can be
+used where import tools or manual spreadsheet workflows are available.
 
 Mobile app:
 

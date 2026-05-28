@@ -9,8 +9,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. This is the local web app address, not an API
-base URL. Import demo data, pasted Douban HTML, or JSON from the extension.
-Export each destination file from the browser.
+base URL. Import scraped Douban JSON from the extension, demo data, or pasted
+Douban HTML. Export each destination file from the browser.
 
 ## Extension
 
@@ -19,13 +19,17 @@ Export each destination file from the browser.
 3. Enable Developer Mode.
 4. Click "Load unpacked".
 5. Select the repository's `extension` folder.
-6. Open a Douban subject, collection, or list page.
+6. Sign in to Douban and open your own collection/history page.
 7. Click the DoubanRefugee extension icon.
 8. Leave "Local web app address" as `http://localhost:3000` unless you serve the
    frontend somewhere else.
-9. Click "Extract page".
-10. Download or copy JSON.
-11. Import that JSON in the web app.
+9. Set "Pages to scrape" to a small number for testing.
+10. Click "Scrape history pages".
+11. Download or copy JSON.
+12. Import that JSON in the web app.
+
+For a single visible page, use "Extract current page" instead of the paged
+scraper.
 
 ## Mobile App
 

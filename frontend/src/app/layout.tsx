@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DoubanRefugee",
-  description: "Privacy-first Douban backup and cultural history migration.",
+  description: "Scrape your own Douban history and export transfer files.",
 };
 
 export default function RootLayout({

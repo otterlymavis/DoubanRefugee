@@ -1,11 +1,12 @@
 # DoubanRefugee Mobile
 
-Expo React Native local companion for Android and iOS.
+Expo React Native local companion for Android and iOS. It imports scraped Douban
+history JSON and shares transfer files from the device.
 
 It supports:
 
 - Demo import with verified public Douban subject IDs.
-- Pasted extension JSON or backup JSON import.
+- Pasted scraped Douban JSON or backup JSON import.
 - Local device library storage.
 - Letterboxd, Filmarks, Goodreads, RateYourMusic, and backup JSON exports
   through the OS share sheet.

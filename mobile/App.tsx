@@ -20,18 +20,18 @@ import { demoItems } from "./src/demoData";
 const STORAGE_KEY = "douban-refugee.mobile-library";
 
 const exportTargets: { destination: Destination; label: string; mediaType?: MediaType; primary?: boolean }[] = [
-  { destination: "letterboxd", label: "Letterboxd CSV", mediaType: "movie" },
-  { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie" },
-  { destination: "goodreads", label: "Goodreads CSV", mediaType: "book" },
-  { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music" },
-  { destination: "backup", label: "Backup JSON", primary: true },
+  { destination: "letterboxd", label: "Letterboxd import CSV", mediaType: "movie" },
+  { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie" },
+  { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book" },
+  { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music" },
+  { destination: "backup", label: "Full backup JSON", primary: true },
 ];
 
 export default function App() {
   const [items, setItems] = useState<CanonicalMedia[]>([]);
   const [jsonInput, setJsonInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("Local-only mode. Import JSON or demo records, then share export files.");
+  const [status, setStatus] = useState("Import scraped Douban JSON or demo records, then share transfer files.");
 
   const counts = useMemo(
     () => ({
@@ -109,7 +109,7 @@ export default function App() {
             <Text style={styles.badgeText}>LOCAL-ONLY</Text>
           </View>
           <Text style={styles.title}>DoubanRefugee</Text>
-          <Text style={styles.subtitle}>No account, server, or API. Keep your Douban archive on this device.</Text>
+          <Text style={styles.subtitle}>Import scraped Douban history JSON and share transfer files from this device.</Text>
         </View>
 
         <Panel title="Import">
@@ -117,7 +117,7 @@ export default function App() {
             <ActionButton label="Import demo records" onPress={() => importItems(demoItems, "demo data")} primary disabled={busy} />
             <ActionButton label="Clear" onPress={clearLibrary} disabled={busy || items.length === 0} />
           </View>
-          <Text style={styles.label}>Paste extension JSON or backup JSON</Text>
+          <Text style={styles.label}>Paste scraped Douban JSON or backup JSON</Text>
           <TextInput
             multiline
             onChangeText={setJsonInput}

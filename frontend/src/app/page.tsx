@@ -25,11 +25,11 @@ const exportTargets: {
   mediaType?: MediaType;
   variant?: "secondary" | "accent";
 }[] = [
-  { destination: "letterboxd", label: "Letterboxd CSV", mediaType: "movie", variant: "accent" },
-  { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie", variant: "secondary" },
-  { destination: "goodreads", label: "Goodreads CSV", mediaType: "book", variant: "secondary" },
-  { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music", variant: "secondary" },
-  { destination: "backup", label: "Backup JSON", variant: "accent" },
+  { destination: "letterboxd", label: "Letterboxd import CSV", mediaType: "movie", variant: "accent" },
+  { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie", variant: "secondary" },
+  { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book", variant: "secondary" },
+  { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music", variant: "secondary" },
+  { destination: "backup", label: "Full backup JSON", variant: "accent" },
 ];
 
 export default function Home() {
@@ -38,7 +38,7 @@ export default function Home() {
   const [jsonText, setJsonText] = useState("");
   const [html, setHtml] = useState("");
   const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
-  const [status, setStatus] = useState("Everything runs in this browser. There is no API base URL to set.");
+  const [status, setStatus] = useState("Scrape your Douban history with the extension, import JSON here, then export transfer files.");
 
   const counts = useMemo(
     () => ({
@@ -126,14 +126,14 @@ export default function Home() {
         <header className="flex flex-col gap-5 border-b bg-background/80 pb-6 backdrop-blur md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-primary/30 text-primary">local-only</Badge>
-              <Badge>no API base URL</Badge>
-              <Badge>private by default</Badge>
+              <Badge className="border-primary/30 text-primary">Douban scraper</Badge>
+              <Badge>transfer files</Badge>
+              <Badge>local-only</Badge>
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              A simple browser tool for preserving Douban history and exporting portable files. There is no server or API address to configure.
-              Your data stays on this device unless you download it.
+              Scrape your logged-in Douban movie, book, and music history, then turn it into files for Letterboxd, Filmarks, Goodreads,
+              RateYourMusic, or a full backup. Your data stays on this device unless you export it.
             </p>
           </div>
           <div className="grid min-w-72 grid-cols-4 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
@@ -149,7 +149,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Import</CardTitle>
-                <CardDescription>Use extension JSON, pasted HTML, or sample data. No API base URL needed.</CardDescription>
+                <CardDescription>Import the JSON produced by the extension's paged Douban history scraper.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -165,7 +165,7 @@ export default function Home() {
                 <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importFile} />
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium uppercase text-muted-foreground">Extension or backup JSON</label>
+                  <label className="text-xs font-medium uppercase text-muted-foreground">Scraped Douban JSON or backup JSON</label>
                   <textarea
                     className="min-h-24 w-full rounded-md border bg-background p-3 text-sm outline-none ring-ring focus:ring-2"
                     onChange={(event) => setJsonText(event.target.value)}
@@ -202,7 +202,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Export</CardTitle>
-                <CardDescription>Generate destination files directly in the browser.</CardDescription>
+                <CardDescription>Generate files to import or use as staging data on the destination site.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
                 {exportTargets.map((target) => (
@@ -228,7 +228,7 @@ export default function Home() {
               <CardContent className="overflow-x-auto">
                 {items.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No data imported yet. Start with the demo or load JSON from the extension. You do not need an API base URL.
+                    No data imported yet. Use the extension to scrape your Douban collection/history pages, then import the JSON here.
                   </div>
                 ) : (
                   <table className="w-full min-w-[720px] text-left text-sm">
@@ -248,7 +248,7 @@ export default function Home() {
                           <td className="py-3">
                             <div className="font-medium">{item.titles.en || item.titles.original || item.titles.zh || item.source_id}</div>
                             <div className="font-mono text-xs text-muted-foreground">
-                              {item.titles.zh || "Douban"} · {item.source_id}
+                              {item.titles.zh || "Douban"} - {item.source_id}
                             </div>
                           </td>
                           <td>{item.media_type}</td>
@@ -265,9 +265,9 @@ export default function Home() {
             </Card>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Capability icon={ShieldCheck} title="No API URL" text="No backend address, accounts, database, Redis, or hosting bill." />
+              <Capability icon={ShieldCheck} title="Own-History Scrape" text="The extension runs in your logged-in browser session and follows Douban pagination." />
               <Capability icon={FileJson} title="Backup JSON" text="Download a full canonical backup you can re-import later." />
-              <Capability icon={Archive} title="Destination CSVs" text="Export Letterboxd, Filmarks, Goodreads, and RateYourMusic files." />
+              <Capability icon={Archive} title="Transfer Files" text="Export Letterboxd, Filmarks, Goodreads, and RateYourMusic files." />
             </div>
           </div>
         </section>

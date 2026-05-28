@@ -1,8 +1,8 @@
 # DoubanRefugee Extension
 
-Minimal Manifest V3 helper for local-only use. It extracts visible Douban
-subject/list entries from the active tab and creates a JSON file that the web
-app can import.
+Manifest V3 helper for local-only transfer. It scrapes the user's own logged-in
+Douban collection/history pages, follows pagination up to a user-selected limit,
+and creates JSON that the web app can convert into destination transfer files.
 
 ## Load It
 
@@ -13,9 +13,12 @@ app can import.
 
 ## Use It
 
-1. Open a Douban subject, collection, or list page.
+1. Sign in to Douban and open your own collection/history page.
 2. Click the DoubanRefugee extension icon.
 3. Select the media type.
-4. Click "Extract page".
-5. Click "Download JSON" or "Copy JSON".
-6. Import that JSON in the local web app.
+4. Set "Pages to scrape".
+5. Click "Scrape history pages".
+6. Click "Download JSON" or "Copy JSON".
+7. Import that JSON in the local web app and export a transfer CSV.
+
+Use "Extract current page" when you only want the visible page.
