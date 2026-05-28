@@ -12,11 +12,14 @@ this shape:
       "source_platform": "douban",
       "source_id": "1291557",
       "source_url": "https://movie.douban.com/subject/1291557/",
-      "collection_status": "watched",
+      "collection_status": "completed",
       "titles": {
         "en": "In the Mood for Love"
       },
       "year": 2000,
+      "release_date": "2000-09-29",
+      "creators": ["Wong Kar-wai"],
+      "countries": ["Hong Kong"],
       "rating": {
         "value": 4.5,
         "scale": 5
@@ -45,9 +48,14 @@ Required fields:
 Optional fields:
 
 - `year`
+- `release_date`
+- `creators`: directors, authors, musicians, or other people Douban exposes in
+  the list-page intro.
+- `countries`: movie production countries parsed from Douban list-page intros.
 - `rating`
 - `review`
-- `collection_status`: `watched`, `watchlist`, or `watching`.
+- `collection_status`: `completed`, `watchlist`, or `watching`. Older imports
+  that use `watched` are normalized to `completed`.
 - `source_url`
 - `poster_url`
 - `marked_date`: when the user marked the item on Douban.

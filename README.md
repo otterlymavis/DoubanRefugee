@@ -1,17 +1,18 @@
 # DoubanRefugee
 
-DoubanRefugee is a local-only migration tool for scraping a Douban user's movie
-history, then converting watched movies and watchlist entries into transfer
+DoubanRefugee is a local-only migration tool for scraping a Douban user's movie,
+book, or music history, then converting completed and wanted items into transfer
 files for Letterboxd and other tracking sites.
 
 No backend. No database. No accounts. No hosting bill.
 
 ## What It Does
 
-- Scrapes Douban movie user pages, using `/collect` for watched movies and
-  `/wish` for watchlist entries.
-- Preserves watched ratings, marked dates, tags, and short reviews/comments
-  when Douban exposes them on the user history page.
+- Scrapes Douban movie, book, and music user pages, using `/collect` for
+  completed items and `/wish` for wanted/watchlist entries.
+- Preserves ratings, marked dates, tags, short reviews/comments, source links,
+  poster URLs, release dates, creators, and countries when Douban exposes them
+  on the user history page.
 - Imports scraped Douban JSON or pasted Douban HTML in the web app.
 - Stores the working library in browser or mobile local storage.
 - Exports separate Letterboxd watched-history and Letterboxd watchlist CSV
@@ -49,10 +50,11 @@ Open chrome://extensions, enable Developer Mode, choose Load unpacked,
 and select the extension/ folder.
 ```
 
-Open your Douban movie user page, such as `https://movie.douban.com/people/<id>/collect`,
-click the extension icon, choose "Scrape whole history", download JSON, then
-import that JSON in the web app. The extension automatically reads both
-`/collect` and `/wish` for that movie user and follows pagination until each
+Open your Douban user page, such as `https://movie.douban.com/people/<id>/collect`
+or `https://book.douban.com/people/<id>/collect`, click the extension icon,
+choose the media type, choose "Scrape whole history", download JSON, then import
+that JSON in the web app. The extension automatically reads both `/collect` and
+`/wish` for the selected movie/book/music user and follows pagination until each
 section ends or the safety limit is reached. Leave the extension's local web app
 address as `http://localhost:3000` unless you serve the static frontend somewhere
 else.

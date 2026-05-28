@@ -46,38 +46,45 @@ function detectCollectionStatus(url = window.location.href) {
     const { pathname } = new URL(url);
     if (/\/people\/[^/]+\/wish\/?/.test(pathname)) return "watchlist";
     if (/\/people\/[^/]+\/do\/?/.test(pathname)) return "watching";
-    if (/\/people\/[^/]+\/collect\/?/.test(pathname)) return "watched";
+    if (/\/people\/[^/]+\/collect\/?/.test(pathname)) return "completed";
   } catch {
     return undefined;
   }
   return undefined;
 }
 
-function userIdFromMoviePeopleUrl(url = window.location.href) {
+const DOUBAN_MEDIA_HOSTS = {
+  movie: "movie.douban.com",
+  book: "book.douban.com",
+  music: "music.douban.com",
+};
+
+function userIdFromPeopleUrl(url = window.location.href) {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname !== "movie.douban.com") return "";
     return parsed.pathname.match(/^\/people\/([^/]+)/)?.[1] || "";
   } catch {
     return "";
   }
 }
 
-function movieUserSectionStarts(currentUrl = window.location.href, mediaType = "movie") {
-  if (mediaType !== "movie") return [];
-  const userId = userIdFromMoviePeopleUrl(currentUrl);
+function userSectionStarts(currentUrl = window.location.href, mediaType = detectMediaType(currentUrl)) {
+  const host = DOUBAN_MEDIA_HOSTS[mediaType];
+  if (!host) return [];
+  const userId = userIdFromPeopleUrl(currentUrl);
   if (!userId) return [];
   const encodedUserId = encodeURIComponent(userId);
+  const mode = mediaType === "movie" ? "grid" : "list";
   return [
     {
-      collection_status: "watched",
-      label: "watched",
-      url: `https://movie.douban.com/people/${encodedUserId}/collect?start=0&sort=time&rating=all&filter=all&mode=grid`,
+      collection_status: "completed",
+      label: `${mediaType}-completed`,
+      url: `https://${host}/people/${encodedUserId}/collect?start=0&sort=time&rating=all&filter=all&mode=${mode}`,
     },
     {
       collection_status: "watchlist",
-      label: "watchlist",
-      url: `https://movie.douban.com/people/${encodedUserId}/wish?start=0&sort=time&rating=all&filter=all&mode=grid`,
+      label: `${mediaType}-wishlist`,
+      url: `https://${host}/people/${encodedUserId}/wish?start=0&sort=time&rating=all&filter=all&mode=${mode}`,
     },
   ];
 }
@@ -92,6 +99,16 @@ function parseDate(text) {
   if (!match) return undefined;
   const [, year, month, day] = match;
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function parsePartialDate(text) {
+  const normalized = compact(text).replace(/\//g, "-");
+  const fullDate = parseDate(normalized);
+  if (fullDate) return fullDate;
+  const yearMonth = normalized.match(/\b((?:19|20)\d{2})-(\d{1,2})\b/);
+  if (yearMonth) return `${yearMonth[1]}-${yearMonth[2].padStart(2, "0")}`;
+  const year = normalized.match(/\b(19|20)\d{2}\b/);
+  return year ? year[0] : "";
 }
 
 function parseRating(root) {
@@ -151,6 +168,33 @@ function cleanTags(value) {
   return text ? text.split(/\s+/).filter(Boolean) : [];
 }
 
+function parseIntroMetadata(root, mediaType) {
+  const introText = compact(root.querySelector(".info .intro, .intro")?.textContent || "");
+  const parts = introText.split(/\s+\/\s+/).map(compact).filter(Boolean);
+  const metadata = {};
+
+  if (mediaType === "movie") {
+    const firstPart = parts[0] || introText;
+    const match = firstPart.match(/^(\d{4}(?:-\d{1,2})?(?:-\d{1,2})?)(?:\(([^)]+)\))?/);
+    const releaseDate = match ? parsePartialDate(match[1]) : parsePartialDate(firstPart);
+    if (releaseDate) metadata.release_date = releaseDate;
+    if (match?.[2]) metadata.countries = match[2].split(/[\/,，、]/).map(compact).filter(Boolean);
+    return metadata;
+  }
+
+  if (mediaType === "book" || mediaType === "music") {
+    const datePart = parts.find((part) => /\b(19|20)\d{2}\b/.test(part));
+    const firstPart = parts[0] || "";
+    if (firstPart && !/\b(19|20)\d{2}\b/.test(firstPart)) {
+      metadata.creators = firstPart.split(/[\/,，、]/).map(compact).filter(Boolean);
+    }
+    const releaseDate = datePart ? parsePartialDate(datePart) : "";
+    if (releaseDate) metadata.release_date = releaseDate;
+  }
+
+  return metadata;
+}
+
 function listTitleNode(root, mediaType) {
   if (mediaType === "book") return root.querySelector(".info h2 a, .info .title a, h2 a, .title a");
   return root.querySelector(".info .title a, .title a, h2 a");
@@ -184,6 +228,13 @@ function itemFromRoot(root, anchor, mediaType, pageUrl = window.location.href, c
   const tags = cleanTags(root.querySelector(".info .tags, .tags")?.textContent || "");
   const posterUrl = root.querySelector(".pic img, #mainpic img")?.getAttribute("src") || "";
   const externalIds = parseExternalIds(metadataRoot, itemMediaType);
+  const introMetadata = parseIntroMetadata(root, itemMediaType);
+  if (itemMediaType === "book" && introMetadata.creators?.length && !externalIds.author) {
+    externalIds.author = introMetadata.creators.join(" / ");
+  }
+  if (itemMediaType === "music" && introMetadata.creators?.length && !externalIds.artist) {
+    externalIds.artist = introMetadata.creators.join(" / ");
+  }
 
   const item = {
     media_type: itemMediaType,
@@ -196,6 +247,7 @@ function itemFromRoot(root, anchor, mediaType, pageUrl = window.location.href, c
     titles: { zh: title },
     tags: ["douban-scrape", collectionStatus ? `douban-${collectionStatus}` : "", ...tags].filter(Boolean),
     external_ids: externalIds,
+    ...introMetadata,
   };
 
   const year = parseYear(rootText);
@@ -331,7 +383,7 @@ async function scrapeDoubanHistory({ mediaType, maxPages }) {
   const seenUrls = new Set();
   const bySource = new Map();
   const pages = [];
-  const starts = movieUserSectionStarts(window.location.href, mediaType || detectMediaType());
+  const starts = userSectionStarts(window.location.href, mediaType || detectMediaType());
   const roots = starts.length > 0 ? starts : [{
     url: window.location.href,
     collection_status: detectCollectionStatus(),

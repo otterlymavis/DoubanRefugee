@@ -39,7 +39,7 @@ export default function Home() {
   const [jsonText, setJsonText] = useState("");
   const [html, setHtml] = useState("");
   const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
-  const [status, setStatus] = useState("Scrape your whole Douban history with the extension, import JSON here, then export transfer files.");
+  const [status, setStatus] = useState("Scrape your whole Douban movie, book, or music history with the extension, import JSON here, then export transfer files.");
 
   const counts = useMemo(
     () => ({
@@ -133,8 +133,8 @@ export default function Home() {
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Scrape your logged-in Douban movie history, including watched films with ratings/reviews and wanted films for watchlist transfer.
-              Then export separate Letterboxd watched and watchlist CSVs. Your data stays on this device unless you export it.
+              Scrape your logged-in Douban movie, book, or music history, including completed items with ratings/reviews and wanted items for wishlist backups.
+              Then export Letterboxd, Goodreads, RateYourMusic, Filmarks, or a full backup JSON. Your data stays on this device unless you export it.
             </p>
           </div>
           <div className="grid min-w-72 grid-cols-4 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
@@ -150,7 +150,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Import</CardTitle>
-                <CardDescription>Import the JSON produced by the extension's whole-history Douban scraper.</CardDescription>
+                <CardDescription>Import the JSON produced by the extension's Douban history scraper.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -229,7 +229,7 @@ export default function Home() {
               <CardContent className="overflow-x-auto">
                 {items.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No data imported yet. Use the extension to scrape your whole Douban collection/history, then import the JSON here.
+                    No data imported yet. Use the extension to scrape your Douban collection/history pages, then import the JSON here.
                   </div>
                 ) : (
                   <table className="w-full min-w-[720px] text-left text-sm">
@@ -246,7 +246,7 @@ export default function Home() {
                     </thead>
                     <tbody>
                       {items.map((item) => (
-                        <tr key={`${item.media_type}:${item.source_id}`} className="border-b last:border-0">
+                        <tr key={`${item.media_type}:${item.source_id}:${item.collection_status || "item"}`} className="border-b last:border-0">
                           <td className="py-3">
                             <div className="font-medium">{item.titles.en || item.titles.original || item.titles.zh || item.source_id}</div>
                             <div className="font-mono text-xs text-muted-foreground">

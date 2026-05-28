@@ -32,7 +32,7 @@ export default function App() {
   const [items, setItems] = useState<CanonicalMedia[]>([]);
   const [jsonInput, setJsonInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("Import scraped Douban JSON or demo records, then share transfer files.");
+  const [status, setStatus] = useState("Import scraped Douban movie, book, or music JSON, then share transfer files.");
 
   const counts = useMemo(
     () => ({
@@ -110,7 +110,7 @@ export default function App() {
             <Text style={styles.badgeText}>LOCAL-ONLY</Text>
           </View>
           <Text style={styles.title}>DoubanRefugee</Text>
-          <Text style={styles.subtitle}>Import scraped Douban history JSON and share transfer files from this device.</Text>
+          <Text style={styles.subtitle}>Import scraped Douban movie, book, or music history JSON and share transfer files from this device.</Text>
         </View>
 
         <Panel title="Import">
@@ -153,7 +153,7 @@ export default function App() {
           {items.length === 0 ? (
             <Text style={styles.empty}>No media imported on this device yet.</Text>
           ) : (
-            items.map((item) => <MediaRow item={item} key={`${item.media_type}:${item.source_id}`} />)
+            items.map((item) => <MediaRow item={item} key={`${item.media_type}:${item.source_id}:${item.collection_status || "item"}`} />)
           )}
         </Panel>
 

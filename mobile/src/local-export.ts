@@ -1,5 +1,5 @@
 export type MediaType = "movie" | "book" | "music";
-export type CollectionStatus = "watched" | "watchlist" | "watching";
+export type CollectionStatus = "completed" | "watchlist" | "watching" | "watched";
 export type Destination = "letterboxd" | "letterboxd-watchlist" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
 
 export type CanonicalMedia = {
@@ -11,6 +11,9 @@ export type CanonicalMedia = {
   collection_status?: CollectionStatus;
   titles: Record<string, string>;
   year?: number;
+  release_date?: string | null;
+  creators?: string[];
+  countries?: string[];
   rating?: { value: number; scale: number } | null;
   review?: string | null;
   marked_date?: string | null;
@@ -25,7 +28,7 @@ export type ExportFile = {
 };
 
 export function mergeItems(existing: CanonicalMedia[], incoming: CanonicalMedia[]) {
-  const bySource = new Map(existing.map((item) => [sourceKey(item), item]));
+  const bySource = new Map(existing.map(normalizeItem).map((item) => [sourceKey(item), item]));
   for (const item of incoming) {
     bySource.set(sourceKey(item), normalizeItem(item));
   }
@@ -74,14 +77,14 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
     case "goodreads":
       return csvFile("goodreads.csv", ["Title", "Author", "My Rating", "Date Read", "My Review"], scoped, (item) => [
         titleFor(item),
-        item.external_ids?.author || "",
+        creatorFor(item, "author"),
         ratingFor(item),
         item.consumed_date || "",
         item.review || "",
       ]);
     case "rateyourmusic":
       return csvFile("rateyourmusic.csv", ["Artist", "Release", "Rating", "Date", "Review"], scoped, (item) => [
-        item.external_ids?.artist || "",
+        creatorFor(item, "artist"),
         titleFor(item),
         ratingFor(item),
         item.consumed_date || "",
@@ -122,9 +125,12 @@ function normalizeItem(item: CanonicalMedia): CanonicalMedia {
     source_id: String(item.source_id),
     source_url: item.source_url || undefined,
     poster_url: item.poster_url || undefined,
-    collection_status: item.collection_status,
+    collection_status: normalizeCollectionStatus(item.collection_status),
     titles: item.titles || {},
     year: item.year,
+    release_date: item.release_date || null,
+    creators: item.creators || [],
+    countries: item.countries || [],
     rating: item.rating || null,
     review: item.review || null,
     marked_date: item.marked_date || null,
@@ -138,8 +144,16 @@ function sourceKey(item: CanonicalMedia) {
   return `${item.media_type}:${item.source_platform}:${item.source_id}:${item.collection_status || "item"}`;
 }
 
+function normalizeCollectionStatus(status: CanonicalMedia["collection_status"]) {
+  return status === "watched" ? "completed" : status;
+}
+
 function compareMedia(a: CanonicalMedia, b: CanonicalMedia) {
-  return (b.consumed_date || "").localeCompare(a.consumed_date || "") || sourceKey(a).localeCompare(sourceKey(b));
+  return dateForSort(b).localeCompare(dateForSort(a)) || sourceKey(a).localeCompare(sourceKey(b));
+}
+
+function dateForSort(item: CanonicalMedia) {
+  return item.consumed_date || item.marked_date || item.release_date || "";
 }
 
 function titleFor(item: CanonicalMedia) {
@@ -148,6 +162,10 @@ function titleFor(item: CanonicalMedia) {
 
 function ratingFor(item: CanonicalMedia) {
   return item.rating?.value ?? "";
+}
+
+function creatorFor(item: CanonicalMedia, fallbackKey: "artist" | "author") {
+  return item.creators?.join(" / ") || item.external_ids?.[fallbackKey] || "";
 }
 
 function scopedItems(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType) {

@@ -11,7 +11,7 @@
       <header>
         <p class="eyebrow">History transfer</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Scrape a Douban user's movie pages: watched films with ratings/reviews plus wanted films for a Letterboxd watchlist.</p>
+        <p class="hint">Scrape a Douban user's movie, book, or music pages: completed items with ratings/reviews plus wanted items for backup and transfer.</p>
       </header>
 
       <label>
@@ -23,7 +23,7 @@
       <label>
         History page safety limit
         <input id="maxPages" type="number" min="1" max="200" value="200">
-        <span class="field-note">Start on a Douban movie user page. The scraper reads both /collect and /wish and follows pagination until each section ends or this limit is reached.</span>
+        <span class="field-note">Start on a Douban user page. The scraper reads the selected media type's /collect and /wish pages and follows pagination until each section ends or this limit is reached.</span>
       </label>
 
       <label>
@@ -43,7 +43,7 @@
       </div>
 
       <section class="status">
-        <div id="statusText">Open your Douban movie user page, then scrape watched movies and watchlist. No API URL needed.</div>
+        <div id="statusText">Open your Douban user page, choose movie/book/music, then scrape completed and wanted items. No API URL needed.</div>
         <pre id="preview" aria-live="polite"></pre>
       </section>
 

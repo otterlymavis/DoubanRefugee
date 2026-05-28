@@ -1,5 +1,5 @@
 export type MediaType = "movie" | "book" | "music";
-export type CollectionStatus = "watched" | "watchlist" | "watching";
+export type CollectionStatus = "completed" | "watchlist" | "watching" | "watched";
 export type Destination = "letterboxd" | "letterboxd-watchlist" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
 
 export type CanonicalMedia = {
@@ -11,6 +11,9 @@ export type CanonicalMedia = {
   collection_status?: CollectionStatus;
   titles: Record<string, string>;
   year?: number;
+  release_date?: string | null;
+  creators?: string[];
+  countries?: string[];
   rating?: { value: number; scale: number } | null;
   review?: string | null;
   marked_date?: string | null;
@@ -32,9 +35,11 @@ export const demoItems: CanonicalMedia[] = [
     media_type: "movie",
     source_platform: "douban",
     source_id: "1291557",
-    collection_status: "watched",
+    collection_status: "completed",
     titles: { en: "In the Mood for Love" },
     year: 2000,
+    release_date: "2000-09-29",
+    countries: ["Hong Kong"],
     rating: { value: 5, scale: 5 },
     review: "A preserved sample entry from the local wizard.",
     consumed_date: "2024-01-02",
@@ -59,6 +64,8 @@ export const demoItems: CanonicalMedia[] = [
     source_id: "2567698",
     titles: { en: "The Three-Body Problem" },
     year: 2008,
+    release_date: "2008",
+    creators: ["Liu Cixin"],
     rating: { value: 5, scale: 5 },
     review: "A preserved book entry for Goodreads migration.",
     consumed_date: "2024-03-08",
@@ -71,6 +78,8 @@ export const demoItems: CanonicalMedia[] = [
     source_id: "1394653",
     titles: { en: "OK Computer" },
     year: 1997,
+    release_date: "1997-05-21",
+    creators: ["Radiohead"],
     rating: { value: 5, scale: 5 },
     review: "A preserved music entry for RateYourMusic migration.",
     consumed_date: "2024-03-09",
@@ -89,7 +98,7 @@ export function saveLibrary(items: CanonicalMedia[]) {
 }
 
 export function mergeItems(existing: CanonicalMedia[], incoming: CanonicalMedia[]) {
-  const bySource = new Map(existing.map((item) => [sourceKey(item), item]));
+  const bySource = new Map(existing.map(normalizeItem).map((item) => [sourceKey(item), item]));
   for (const item of incoming) {
     bySource.set(sourceKey(item), normalizeItem(item));
   }
@@ -129,6 +138,7 @@ export function parseDoubanHtml(html: string, mediaType: MediaType): CanonicalMe
         source_id: sourceId,
         titles: { zh: title },
         year: parseYear(node.textContent || ""),
+        ...parseIntroMetadata(node, mediaType),
         rating: parseRating(node),
         review: compact(node.querySelector(".comment, .short, .review-short, blockquote")?.textContent || "") || undefined,
         consumed_date: parseConsumedDate(node.textContent || ""),
@@ -174,14 +184,14 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
     case "goodreads":
       return csvFile("goodreads.csv", ["Title", "Author", "My Rating", "Date Read", "My Review"], scoped, (item) => [
         titleFor(item),
-        item.external_ids?.author || "",
+        creatorFor(item, "author"),
         ratingFor(item),
         item.consumed_date || "",
         item.review || "",
       ]);
     case "rateyourmusic":
       return csvFile("rateyourmusic.csv", ["Artist", "Release", "Rating", "Date", "Review"], scoped, (item) => [
-        item.external_ids?.artist || "",
+        creatorFor(item, "artist"),
         titleFor(item),
         ratingFor(item),
         item.consumed_date || "",
@@ -234,9 +244,12 @@ function normalizeItem(item: CanonicalMedia): CanonicalMedia {
     source_id: String(item.source_id),
     source_url: item.source_url || undefined,
     poster_url: item.poster_url || undefined,
-    collection_status: item.collection_status,
+    collection_status: normalizeCollectionStatus(item.collection_status),
     titles: item.titles || {},
     year: item.year,
+    release_date: item.release_date || null,
+    creators: item.creators || [],
+    countries: item.countries || [],
     rating: item.rating || null,
     review: item.review || null,
     marked_date: item.marked_date || null,
@@ -254,8 +267,16 @@ function sourceKey(item: CanonicalMedia) {
   return `${item.media_type}:${item.source_platform}:${item.source_id}:${item.collection_status || "item"}`;
 }
 
+function normalizeCollectionStatus(status: CanonicalMedia["collection_status"]) {
+  return status === "watched" ? "completed" : status;
+}
+
 function compareMedia(a: CanonicalMedia, b: CanonicalMedia) {
-  return (b.consumed_date || "").localeCompare(a.consumed_date || "") || sourceKey(a).localeCompare(sourceKey(b));
+  return dateForSort(b).localeCompare(dateForSort(a)) || sourceKey(a).localeCompare(sourceKey(b));
+}
+
+function dateForSort(item: CanonicalMedia) {
+  return item.consumed_date || item.marked_date || item.release_date || "";
 }
 
 function titleFor(item: CanonicalMedia) {
@@ -264,6 +285,10 @@ function titleFor(item: CanonicalMedia) {
 
 function ratingFor(item: CanonicalMedia) {
   return item.rating?.value ?? "";
+}
+
+function creatorFor(item: CanonicalMedia, fallbackKey: "artist" | "author") {
+  return item.creators?.join(" / ") || item.external_ids?.[fallbackKey] || "";
 }
 
 function scopedItems(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType) {
@@ -293,6 +318,43 @@ function parseConsumedDate(text: string) {
   if (!match) return undefined;
   const [, year, month, day] = match;
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function parsePartialDate(text: string) {
+  const normalized = compact(text).replace(/\//g, "-");
+  const fullDate = parseConsumedDate(normalized);
+  if (fullDate) return fullDate;
+  const yearMonth = normalized.match(/\b((?:19|20)\d{2})-(\d{1,2})\b/);
+  if (yearMonth) return `${yearMonth[1]}-${yearMonth[2].padStart(2, "0")}`;
+  const year = normalized.match(/\b(19|20)\d{2}\b/);
+  return year ? year[0] : "";
+}
+
+function parseIntroMetadata(node: Element, mediaType: MediaType) {
+  const introText = compact(node.querySelector(".info .intro, .intro")?.textContent || "");
+  const parts = introText.split(/\s+\/\s+/).map(compact).filter(Boolean);
+  const metadata: Pick<CanonicalMedia, "release_date" | "creators" | "countries"> = {};
+
+  if (mediaType === "movie") {
+    const firstPart = parts[0] || introText;
+    const match = firstPart.match(/^(\d{4}(?:-\d{1,2})?(?:-\d{1,2})?)(?:\(([^)]+)\))?/);
+    const releaseDate = match ? parsePartialDate(match[1]) : parsePartialDate(firstPart);
+    if (releaseDate) metadata.release_date = releaseDate;
+    if (match?.[2]) metadata.countries = match[2].split(/[\/,，、]/).map(compact).filter(Boolean);
+    return metadata;
+  }
+
+  if (mediaType === "book" || mediaType === "music") {
+    const firstPart = parts[0] || "";
+    const datePart = parts.find((part) => /\b(19|20)\d{2}\b/.test(part));
+    if (firstPart && !/\b(19|20)\d{2}\b/.test(firstPart)) {
+      metadata.creators = firstPart.split(/[\/,，、]/).map(compact).filter(Boolean);
+    }
+    const releaseDate = datePart ? parsePartialDate(datePart) : "";
+    if (releaseDate) metadata.release_date = releaseDate;
+  }
+
+  return metadata;
 }
 
 function parseRating(node: Element) {

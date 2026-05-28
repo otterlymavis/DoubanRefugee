@@ -6,9 +6,11 @@ const realDoubanItems: CanonicalMedia[] = [
     media_type: "movie",
     source_platform: "douban",
     source_id: "1291557",
-    collection_status: "watched",
+    collection_status: "completed",
     titles: { en: "In the Mood for Love" },
     year: 2000,
+    release_date: "2000-09-29",
+    countries: ["Hong Kong"],
     rating: { value: 5, scale: 5 },
     review: "Real Douban movie fixture with IMDb mapping.",
     consumed_date: "2024-01-02",
@@ -19,7 +21,7 @@ const realDoubanItems: CanonicalMedia[] = [
     media_type: "movie",
     source_platform: "douban",
     source_id: "1305690",
-    collection_status: "watched",
+    collection_status: "completed",
     titles: { en: "Days of Being Wild" },
     year: 1990,
     rating: { value: 4.5, scale: 5 },
@@ -44,35 +46,57 @@ const realDoubanItems: CanonicalMedia[] = [
     media_type: "book",
     source_platform: "douban",
     source_id: "2567698",
+    collection_status: "completed",
     titles: { en: "The Three-Body Problem" },
     year: 2008,
+    release_date: "2008",
+    creators: ["Liu Cixin"],
     rating: { value: 5, scale: 5 },
     review: "Real Douban book fixture for Goodreads migration.",
     consumed_date: "2024-03-08",
     tags: ["douban", "sci-fi"],
-    external_ids: { isbn: "9787536692930", author: "Liu Cixin" },
+    external_ids: { isbn: "9787536692930" },
+  },
+  {
+    media_type: "book",
+    source_platform: "douban",
+    source_id: "1000001",
+    collection_status: "watchlist",
+    titles: { en: "Book on the wishlist" },
+    year: 2020,
+    release_date: "2020",
+    creators: ["Wishlist Author"],
+    rating: null,
+    marked_date: "2024-03-10",
+    tags: ["douban", "wishlist"],
+    external_ids: {},
   },
   {
     media_type: "music",
     source_platform: "douban",
     source_id: "1394653",
+    collection_status: "completed",
     titles: { en: "OK Computer" },
     year: 1997,
+    release_date: "1997-05-21",
+    creators: ["Radiohead"],
     rating: { value: 5, scale: 5 },
     review: "Real Douban music fixture for RateYourMusic migration.",
     consumed_date: "2024-03-09",
     tags: ["douban", "rock"],
-    external_ids: { artist: "Radiohead", barcode: "0724385522925" },
+    external_ids: { barcode: "0724385522925" },
   },
 ];
 
 const imported = parseJsonItems(JSON.stringify({ items: realDoubanItems }));
+const legacyImported = parseJsonItems(JSON.stringify({ items: [{ ...realDoubanItems[0], collection_status: "watched" }] }));
+assert.equal(legacyImported[0].collection_status, "completed", "legacy watched status should import as completed");
 const merged = mergeItems([realDoubanItems[0]], imported);
 
-assert.equal(merged.length, 5, "backup imports should merge by Douban source id and status without duplicates");
+assert.equal(merged.length, 6, "backup imports should merge by Douban source id and status without duplicates");
 assert.deepEqual(
   new Set(merged.map((item) => item.source_id)),
-  new Set(["1291557", "1305690", "1308857", "2567698", "1394653"]),
+  new Set(["1291557", "1305690", "1308857", "2567698", "1000001", "1394653"]),
 );
 
 const letterboxd = renderExport(merged, "letterboxd", "movie");
@@ -102,6 +126,7 @@ assert.equal(goodreads.filename, "goodreads.csv");
 assert.equal(goodreads.content.split("\n")[0], "Title,Author,My Rating,Date Read,My Review");
 assertIncludes(goodreads.content, "The Three-Body Problem");
 assertIncludes(goodreads.content, "Liu Cixin");
+assertDoesNotInclude(goodreads.content, "Book on the wishlist");
 assertDoesNotInclude(goodreads.content, "Days of Being Wild");
 
 const rateYourMusic = renderExport(merged, "rateyourmusic", "music");
@@ -115,10 +140,12 @@ const backup = renderExport(merged, "backup");
 assert.equal(backup.filename, "douban-refugee-backup.json");
 const parsedBackup = JSON.parse(backup.content) as { exported_at: string; items: CanonicalMedia[] };
 assert.match(parsedBackup.exported_at, /^\d{4}-\d{2}-\d{2}T/);
-assert.equal(parsedBackup.items.length, 5);
+assert.equal(parsedBackup.items.length, 6);
+assert.deepEqual(parsedBackup.items.find((item) => item.source_id === "1291557")?.countries, ["Hong Kong"]);
+assert.deepEqual(parsedBackup.items.find((item) => item.source_id === "2567698")?.creators, ["Liu Cixin"]);
 assert.deepEqual(
   new Set(parsedBackup.items.map((item) => `${item.media_type}:${item.source_id}`)),
-  new Set(["movie:1291557", "movie:1305690", "movie:1308857", "book:2567698", "music:1394653"]),
+  new Set(["movie:1291557", "movie:1305690", "movie:1308857", "book:2567698", "book:1000001", "music:1394653"]),
 );
 
 console.log("Local export tests passed for Letterboxd watched/watchlist, Filmarks, Goodreads, RateYourMusic, and backup JSON.");

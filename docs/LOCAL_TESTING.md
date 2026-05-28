@@ -10,8 +10,8 @@ npm run dev
 
 Open `http://localhost:3000`. This is the local web app address, not an API
 base URL. Import scraped Douban JSON from the extension, demo data, or pasted
-Douban HTML. Export the Letterboxd watched CSV and Letterboxd watchlist CSV
-from the browser.
+Douban HTML. Export Letterboxd, Filmarks, Goodreads, RateYourMusic, or backup
+files from the browser.
 
 ## Extension
 
@@ -20,15 +20,17 @@ from the browser.
 3. Enable Developer Mode.
 4. Click "Load unpacked".
 5. Select the repository's `extension` folder.
-6. Sign in to Douban and open a Douban movie user page, such as
-   `https://movie.douban.com/people/<id>/collect`.
+6. Sign in to Douban and open a Douban movie, book, or music user page, such as
+   `https://movie.douban.com/people/<id>/collect`,
+   `https://book.douban.com/people/<id>/collect`, or
+   `https://music.douban.com/people/<id>/collect`.
 7. Click the DoubanRefugee extension icon.
 8. Leave "Local web app address" as `http://localhost:3000` unless you serve the
    frontend somewhere else.
 9. Set "History page safety limit" to a small number for testing, or leave it
    high for a full history scrape.
 10. Click "Scrape whole history".
-11. Download or copy JSON. The output should include `watched` and `watchlist`
+11. Download or copy JSON. The output should include completed and wanted
     records when both sections are visible to your browser session.
 12. Import that JSON in the web app.
 
