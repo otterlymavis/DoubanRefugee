@@ -8,8 +8,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. Import demo data, pasted Douban HTML, or JSON from
-the extension. Export each destination file from the browser.
+Open `http://localhost:3000`. This is the local web app address, not an API
+base URL. Import demo data, pasted Douban HTML, or JSON from the extension.
+Export each destination file from the browser.
 
 ## Extension
 
@@ -20,9 +21,11 @@ the extension. Export each destination file from the browser.
 5. Select the repository's `extension` folder.
 6. Open a Douban subject, collection, or list page.
 7. Click the DoubanRefugee extension icon.
-8. Click "Extract page".
-9. Download or copy JSON.
-10. Import that JSON in the web app.
+8. Leave "Local web app address" as `http://localhost:3000` unless you serve the
+   frontend somewhere else.
+9. Click "Extract page".
+10. Download or copy JSON.
+11. Import that JSON in the web app.
 
 ## Mobile App
 

@@ -11,12 +11,13 @@
       <header>
         <p class="eyebrow">Local extractor</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Extract visible Douban entries from this tab. No backend, no account, just JSON.</p>
+        <p class="hint">Extract visible Douban entries from this tab. No backend, no API base URL, just JSON.</p>
       </header>
 
       <label>
-        Web app URL
+        Local web app address
         <input id="webAppUrl" type="url" value="http://localhost:3000">
+        <span class="field-note">This opens the browser app only. It is not an API or backend URL.</span>
       </label>
 
       <label>
@@ -32,16 +33,16 @@
         <button id="extractButton" type="button">Extract page</button>
         <button id="copyButton" type="button" disabled>Copy JSON</button>
         <button id="downloadButton" type="button" disabled>Download JSON</button>
-        <button id="openButton" type="button">Open web app</button>
+        <button id="openButton" type="button">Open local app</button>
       </div>
 
       <section class="status">
-        <div id="statusText">Open a Douban subject/list page, then extract.</div>
+        <div id="statusText">Open a Douban subject/list page, then extract. No API URL needed.</div>
         <pre id="preview" aria-live="polite"></pre>
       </section>
 
       <footer>
-        <a id="webAppLink" href="http://localhost:3000" target="_blank" rel="noreferrer">Open web app</a>
+        <a id="webAppLink" href="http://localhost:3000" target="_blank" rel="noreferrer">Open local web app</a>
       </footer>
     </main>
     <script src="popup.js"></script>

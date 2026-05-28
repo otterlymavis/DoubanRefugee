@@ -32,7 +32,8 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. This is the local web app address, not an API
+base URL. No backend URL is needed.
 
 Extension:
 
@@ -42,7 +43,8 @@ and select the extension/ folder.
 ```
 
 Open a Douban page, click the extension icon, download JSON, then import that
-JSON in the web app.
+JSON in the web app. Leave the extension's local web app address as
+`http://localhost:3000` unless you serve the static frontend somewhere else.
 
 Mobile app:
 

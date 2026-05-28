@@ -38,7 +38,7 @@ export default function Home() {
   const [jsonText, setJsonText] = useState("");
   const [html, setHtml] = useState("");
   const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
-  const [status, setStatus] = useState("Everything runs locally. Import data, export files, no backend needed.");
+  const [status, setStatus] = useState("Everything runs in this browser. There is no API base URL to set.");
 
   const counts = useMemo(
     () => ({
@@ -127,12 +127,13 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge className="border-primary/30 text-primary">local-only</Badge>
-              <Badge>no backend</Badge>
+              <Badge>no API base URL</Badge>
               <Badge>private by default</Badge>
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              A simple browser tool for preserving Douban history and exporting portable files. Your data stays on this device unless you download it.
+              A simple browser tool for preserving Douban history and exporting portable files. There is no server or API address to configure.
+              Your data stays on this device unless you download it.
             </p>
           </div>
           <div className="grid min-w-72 grid-cols-4 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
@@ -148,7 +149,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Import</CardTitle>
-                <CardDescription>Use the extension JSON, pasted HTML, or sample data.</CardDescription>
+                <CardDescription>Use extension JSON, pasted HTML, or sample data. No API base URL needed.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -227,7 +228,7 @@ export default function Home() {
               <CardContent className="overflow-x-auto">
                 {items.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No data imported yet. Start with the demo or load JSON from the extension.
+                    No data imported yet. Start with the demo or load JSON from the extension. You do not need an API base URL.
                   </div>
                 ) : (
                   <table className="w-full min-w-[720px] text-left text-sm">
@@ -264,7 +265,7 @@ export default function Home() {
             </Card>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Capability icon={ShieldCheck} title="No Server" text="No API, accounts, database, Redis, or hosting bill." />
+              <Capability icon={ShieldCheck} title="No API URL" text="No backend address, accounts, database, Redis, or hosting bill." />
               <Capability icon={FileJson} title="Backup JSON" text="Download a full canonical backup you can re-import later." />
               <Capability icon={Archive} title="Destination CSVs" text="Export Letterboxd, Filmarks, Goodreads, and RateYourMusic files." />
             </div>
