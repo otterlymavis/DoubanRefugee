@@ -2,13 +2,9 @@
   "manifest_version": 3,
   "name": "DoubanRefugee Test Extractor",
   "version": "0.1.0",
-  "description": "Extract visible Douban media entries and send them to a local DoubanRefugee API.",
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
-  "host_permissions": [
-    "https://*.douban.com/*",
-    "http://localhost:8000/*",
-    "http://127.0.0.1:8000/*"
-  ],
+  "description": "Extract visible Douban media entries into a local JSON backup.",
+  "permissions": ["activeTab", "clipboardWrite", "scripting", "storage", "tabs"],
+  "host_permissions": ["https://*.douban.com/*"],
   "action": {
     "default_title": "DoubanRefugee",
     "default_popup": "popup.html"

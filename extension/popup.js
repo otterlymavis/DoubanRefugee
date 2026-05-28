@@ -1,16 +1,16 @@
 const DEFAULTS = {
-  apiBase: "http://localhost:8000",
   mediaType: "movie",
-  userId: undefined
+  webAppUrl: "http://localhost:3000"
 };
 
-let extractedItems = [];
-let activePage = undefined;
+let extractedPayload = undefined;
 
-const apiBaseInput = document.querySelector("#apiBase");
+const webAppUrlInput = document.querySelector("#webAppUrl");
 const mediaTypeInput = document.querySelector("#mediaType");
 const extractButton = document.querySelector("#extractButton");
-const importButton = document.querySelector("#importButton");
+const copyButton = document.querySelector("#copyButton");
+const downloadButton = document.querySelector("#downloadButton");
+const openButton = document.querySelector("#openButton");
 const statusText = document.querySelector("#statusText");
 const preview = document.querySelector("#preview");
 const webAppLink = document.querySelector("#webAppLink");
@@ -24,8 +24,8 @@ function showPreview(payload) {
   preview.textContent = JSON.stringify(payload, null, 2);
 }
 
-function normalizeApiBase(value) {
-  return (value || DEFAULTS.apiBase).replace(/\/+$/, "");
+function normalizeUrl(value) {
+  return (value || DEFAULTS.webAppUrl).replace(/\/+$/, "");
 }
 
 async function getActiveTab() {
@@ -36,16 +36,19 @@ async function getActiveTab() {
 
 async function loadSettings() {
   const stored = await chrome.storage.local.get(DEFAULTS);
-  apiBaseInput.value = stored.apiBase || DEFAULTS.apiBase;
+  webAppUrlInput.value = stored.webAppUrl || DEFAULTS.webAppUrl;
   mediaTypeInput.value = stored.mediaType || DEFAULTS.mediaType;
-  webAppLink.href = normalizeApiBase(stored.webAppUrl || "http://localhost:3000").replace(":8000", ":3000");
+  webAppLink.href = normalizeUrl(stored.webAppUrl || DEFAULTS.webAppUrl);
 }
 
 async function saveSettings() {
+  const webAppUrl = normalizeUrl(webAppUrlInput.value);
   await chrome.storage.local.set({
-    apiBase: normalizeApiBase(apiBaseInput.value),
-    mediaType: mediaTypeInput.value
+    mediaType: mediaTypeInput.value,
+    webAppUrl
   });
+  webAppLink.href = webAppUrl;
+  return webAppUrl;
 }
 
 async function extractPage() {
@@ -65,11 +68,20 @@ async function extractPage() {
     throw new Error(response?.error || "The content extractor did not respond.");
   }
 
-  extractedItems = response.items || [];
-  activePage = response.page;
-  importButton.disabled = extractedItems.length === 0;
-  setStatus(`Extracted ${extractedItems.length} item(s) from ${activePage.title || "this page"}.`);
-  showPreview({ page: activePage, items: extractedItems.slice(0, 5) });
+  extractedPayload = {
+    exported_at: new Date().toISOString(),
+    source_profile: {
+      client: "douban-refugee-extension",
+      page: response.page
+    },
+    items: response.items || []
+  };
+
+  const hasItems = extractedPayload.items.length > 0;
+  copyButton.disabled = !hasItems;
+  downloadButton.disabled = !hasItems;
+  setStatus(`Extracted ${extractedPayload.items.length} item(s). Download JSON, then import it in the web app.`);
+  showPreview({ page: response.page, items: extractedPayload.items.slice(0, 5) });
 }
 
 async function requestExtraction(tabId, message) {
@@ -84,33 +96,22 @@ async function requestExtraction(tabId, message) {
   }
 }
 
-async function importToApi() {
-  await saveSettings();
-  const stored = await chrome.storage.local.get(DEFAULTS);
-  const apiBase = normalizeApiBase(apiBaseInput.value);
+async function copyJson() {
+  if (!extractedPayload) return;
+  await navigator.clipboard.writeText(JSON.stringify(extractedPayload, null, 2));
+  setStatus("Copied JSON to clipboard. Paste it into the web app's Import JSON flow.");
+}
 
-  const response = await fetch(`${apiBase}/api/v1/imports/douban/browser-extension`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: stored.userId || null,
-      items: extractedItems,
-      source_profile: {
-        client: "douban-refugee-test-extension",
-        page: activePage,
-        extracted_at: new Date().toISOString()
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  const body = await response.json();
-  await chrome.storage.local.set({ userId: body.user_id });
-  setStatus(`Imported ${body.imported_count} item(s). User ${body.user_id.slice(0, 8)} is saved for the next import.`);
-  showPreview(body);
+function downloadJson() {
+  if (!extractedPayload) return;
+  const blob = new Blob([JSON.stringify(extractedPayload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "douban-refugee-import.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Downloaded douban-refugee-import.json.");
 }
 
 extractButton.addEventListener("click", async () => {
@@ -125,16 +126,19 @@ extractButton.addEventListener("click", async () => {
   }
 });
 
-importButton.addEventListener("click", async () => {
-  importButton.disabled = true;
-  setStatus("Sending extracted items to local API...");
+copyButton.addEventListener("click", async () => {
   try {
-    await importToApi();
+    await copyJson();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error));
-  } finally {
-    importButton.disabled = extractedItems.length === 0;
   }
+});
+
+downloadButton.addEventListener("click", downloadJson);
+
+openButton.addEventListener("click", async () => {
+  const webAppUrl = await saveSettings();
+  await chrome.tabs.create({ url: webAppUrl });
 });
 
 loadSettings().catch((error) => {

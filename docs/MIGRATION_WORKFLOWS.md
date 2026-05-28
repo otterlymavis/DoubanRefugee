@@ -1,28 +1,22 @@
 # Migration Workflows
 
-## Import and Backup
+## Extension to Web
 
-1. User imports Douban movie, book, or music history through the browser
-   extension payload, mobile demo payload, pasted HTML, or uploaded HTML.
-2. Backend stores a `BackupSnapshot` and normalized `MediaItem` rows.
-3. `ArchiveAdapter` renders a backup ZIP containing `canonical.json` plus one
-   Markdown file per item.
+1. Open a Douban subject, collection, or list page.
+2. Use the extension to extract visible items.
+3. Download or copy JSON.
+4. Import the JSON into the web app.
+5. Download Letterboxd, Filmarks, Goodreads, RateYourMusic, or backup JSON.
 
-## Destination Exports
+## Pasted HTML to Web
 
-All destination exports read from the canonical media model:
+1. Copy a Douban HTML export or saved page fragment.
+2. Paste it into the web app.
+3. Pick movie, book, or music as the media type.
+4. Import and export locally.
 
-- Movies to Letterboxd through `LetterboxdAdapter`.
-- Movies to Filmarks through `FilmarksAdapter`.
-- Books to Goodreads through `GoodreadsAdapter`.
-- Music to RateYourMusic through `RateYourMusicAdapter`.
-- All media to portable backup ZIP through `ArchiveAdapter`.
+## Mobile
 
-## Manual Review
-
-1. User runs matching for the imported media type.
-2. Provider candidates are ranked by exact title/year, alternate titles, fuzzy
-   score, and metadata boosts.
-3. Low-confidence rows appear in the review queue.
-4. User selects the correct provider record.
-5. Selection writes a `ManualMapping` so later exports can reuse the correction.
+1. Paste extension JSON or backup JSON into the mobile app.
+2. Store the library locally on device.
+3. Share destination CSV or backup JSON output.

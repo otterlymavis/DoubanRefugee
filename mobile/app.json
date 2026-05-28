@@ -10,25 +10,10 @@
     "scheme": "doubanrefugee",
     "platforms": ["ios", "android"],
     "githubUrl": "https://github.com/otterlymavis/DoubanRefugee",
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true
-          }
-        }
-      ]
-    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.otterlymavis.doubanrefugee",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsLocalNetworking": true
-        }
-      }
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.otterlymavis.doubanrefugee",

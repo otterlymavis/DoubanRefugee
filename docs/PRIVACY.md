@@ -1,24 +1,23 @@
 # Privacy Model
 
-DoubanRefugee treats cultural history as sensitive personal data.
+DoubanRefugee is local-only by design.
 
-## Principles
+## Defaults
 
-- Do not store Douban passwords.
-- Prefer client-side or browser-extension extraction.
-- Encrypt authenticated cookies when the user opts into server-side fallback.
-- Store only metadata required for backup, matching, and export.
-- Let users delete their accounts and export artifacts.
-- Make all exports downloadable and portable.
+- No backend.
+- No account.
+- No Douban password storage.
+- No server-side scraping.
+- No remote database.
+- No telemetry.
 
-## Account Deletion
+## Storage
 
-The deletion workflow removes:
+- The web app stores the working library in browser `localStorage`.
+- The mobile app stores the working library in device local storage.
+- The extension only extracts the active page and creates JSON for the user.
 
-- User profile record.
-- Backup snapshots.
-- Media items, ratings, and reviews.
-- Match candidates and manual mappings owned by the user.
-- Export jobs and generated files.
-- Encrypted session data.
+## User Control
 
+Users can clear local storage, download a backup JSON file, and re-import that
+backup later. Sharing or uploading exported files is always a user action.

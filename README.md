@@ -1,74 +1,48 @@
 # DoubanRefugee
 
-DoubanRefugee is a privacy-first cultural history backup and migration platform.
-It preserves Douban movie, book, and music histories in a canonical schema, then
-exports destination-compatible files for Letterboxd, Filmarks, Goodreads, and
-RateYourMusic.
+DoubanRefugee is a local-only tool for backing up Douban movie, book, and music
+history and converting it into portable files.
 
-## MVP Scope
+No backend. No database. No accounts. No hosting bill.
 
-Phase 1 is implemented as a production-ready foundation:
+## What It Does
 
-- Douban movie backup ingestion from browser-extension payloads or HTML exports.
-- Canonical media schema for movies, books, and music.
-- Letterboxd, Filmarks, Goodreads, RateYourMusic, and backup archive exports.
-- Matching engine foundations with TMDb, Open Library, and MusicBrainz providers.
-- Manual review API and UI for uncertain matches.
-- FastAPI backend, PostgreSQL, Redis, Dramatiq worker, and Next.js frontend.
+- Imports JSON from the browser extension.
+- Imports pasted Douban HTML in the web app.
+- Stores the working library in browser or mobile local storage.
+- Exports CSV files for Letterboxd, Filmarks, Goodreads, and RateYourMusic.
+- Exports a full `douban-refugee-backup.json` file that can be re-imported.
 
 ## Repository Layout
 
 ```text
-backend/       FastAPI app, SQLAlchemy models, services, workers, tests
-frontend/      Next.js App Router UI with Tailwind and shadcn-style primitives
-extension/     Manifest V3 test extension for local Douban extraction
-mobile/        Expo React Native app for Android and iOS
-docs/          Architecture, privacy, migration, and deployment notes
-docker-compose.yml
-.env.example
+frontend/      Static Next.js local web app
+extension/     Manifest V3 Douban JSON extractor
+mobile/        Expo React Native local app for Android and iOS
+docs/          Architecture, privacy, and local testing notes
 ```
 
 ## Quick Start
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-Frontend: http://localhost:3000
-
-Backend API: http://localhost:8000/docs
-
-## Local Development
-
-Backend:
-
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-pytest
-uvicorn app.main:app --reload
-```
-
-Frontend:
+Web app:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Test extension:
+Open `http://localhost:3000`.
+
+Extension:
 
 ```text
 Open chrome://extensions, enable Developer Mode, choose Load unpacked,
 and select the extension/ folder.
 ```
 
-With the backend running at `http://localhost:8000`, open a Douban page, click
-the extension icon, extract the page, and import the payload into the local API.
+Open a Douban page, click the extension icon, download JSON, then import that
+JSON in the web app.
 
 Mobile app:
 
@@ -78,22 +52,9 @@ npm ci
 npm run android
 ```
 
-Use `npm run ios` on macOS or open the Expo development build on an iOS device.
-The app can import verified demo records or pasted Douban HTML and then call
-the same matching, destination export, and backup APIs as the web client.
-
-The Vercel CLI is not installed in this environment. Installing it with
-`npm i -g vercel` will unlock workflows such as `vercel env pull`,
-`vercel deploy`, and `vercel logs`.
+Use `npm run ios` on macOS. The mobile app is also local-only: import JSON or
+demo records, then share CSV/backup output.
 
 See [Architecture](docs/ARCHITECTURE.md), [Schema](docs/SCHEMA.md),
 [Migration Workflows](docs/MIGRATION_WORKFLOWS.md), and
-[Privacy](docs/PRIVACY.md) for the system design.
-
-## Privacy Defaults
-
-- No Douban password storage.
-- Session cookies are encrypted before persistence.
-- Export jobs expire by policy.
-- Account deletion removes user-owned records and encrypted session data.
-- Browser-extension extraction is preferred over server-side scraping.
+[Privacy](docs/PRIVACY.md).

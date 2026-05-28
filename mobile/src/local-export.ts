@@ -1,0 +1,136 @@
+export type MediaType = "movie" | "book" | "music";
+export type Destination = "letterboxd" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
+
+export type CanonicalMedia = {
+  media_type: MediaType;
+  source_platform: "douban";
+  source_id: string;
+  titles: Record<string, string>;
+  year?: number;
+  rating?: { value: number; scale: number } | null;
+  review?: string | null;
+  consumed_date?: string | null;
+  tags?: string[];
+  external_ids?: Record<string, string>;
+};
+
+export type ExportFile = {
+  filename: string;
+  content: string;
+};
+
+export function mergeItems(existing: CanonicalMedia[], incoming: CanonicalMedia[]) {
+  const bySource = new Map(existing.map((item) => [sourceKey(item), item]));
+  for (const item of incoming) {
+    bySource.set(sourceKey(item), normalizeItem(item));
+  }
+  return Array.from(bySource.values()).sort(compareMedia);
+}
+
+export function parseJsonItems(value: string): CanonicalMedia[] {
+  const parsed = JSON.parse(value);
+  const items = Array.isArray(parsed) ? parsed : parsed.items;
+  if (!Array.isArray(items)) {
+    throw new Error("JSON must be an array of media items or an object with an items array.");
+  }
+  return items.map(normalizeItem);
+}
+
+export function renderExport(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType): ExportFile {
+  const scoped = mediaType ? items.filter((item) => item.media_type === mediaType) : items;
+  if (scoped.length === 0) {
+    throw new Error(`No ${mediaType || "media"} items available for this export.`);
+  }
+
+  switch (destination) {
+    case "letterboxd":
+      return csvFile("letterboxd.csv", ["Title", "Year", "Rating", "WatchedDate", "Review", "Tags"], scoped, (item) => [
+        titleFor(item),
+        item.year || "",
+        ratingFor(item),
+        item.consumed_date || "",
+        item.review || "",
+        (item.tags || []).join(", "),
+      ]);
+    case "filmarks":
+      return csvFile("filmarks.csv", ["title", "year", "rating", "watched_date", "comment"], scoped, (item) => [
+        titleFor(item),
+        item.year || "",
+        ratingFor(item),
+        item.consumed_date || "",
+        item.review || "",
+      ]);
+    case "goodreads":
+      return csvFile("goodreads.csv", ["Title", "Author", "My Rating", "Date Read", "My Review"], scoped, (item) => [
+        titleFor(item),
+        item.external_ids?.author || "",
+        ratingFor(item),
+        item.consumed_date || "",
+        item.review || "",
+      ]);
+    case "rateyourmusic":
+      return csvFile("rateyourmusic.csv", ["Artist", "Release", "Rating", "Date", "Review"], scoped, (item) => [
+        item.external_ids?.artist || "",
+        titleFor(item),
+        ratingFor(item),
+        item.consumed_date || "",
+        item.review || "",
+      ]);
+    case "backup":
+      return {
+        filename: "douban-refugee-backup.json",
+        content: JSON.stringify({ exported_at: new Date().toISOString(), items: scoped }, null, 2),
+      };
+  }
+}
+
+function csvFile(
+  filename: string,
+  headers: string[],
+  items: CanonicalMedia[],
+  rowFor: (item: CanonicalMedia) => Array<string | number>,
+): ExportFile {
+  return {
+    filename,
+    content: [headers, ...items.map(rowFor)].map((row) => row.map(csvCell).join(",")).join("\n"),
+  };
+}
+
+function csvCell(value: string | number) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function normalizeItem(item: CanonicalMedia): CanonicalMedia {
+  if (!item.source_id || !item.media_type) {
+    throw new Error("Every item needs source_id and media_type.");
+  }
+  return {
+    media_type: item.media_type,
+    source_platform: "douban",
+    source_id: String(item.source_id),
+    titles: item.titles || {},
+    year: item.year,
+    rating: item.rating || null,
+    review: item.review || null,
+    consumed_date: item.consumed_date || null,
+    tags: item.tags || [],
+    external_ids: item.external_ids || {},
+  };
+}
+
+function sourceKey(item: CanonicalMedia) {
+  return `${item.media_type}:${item.source_platform}:${item.source_id}`;
+}
+
+function compareMedia(a: CanonicalMedia, b: CanonicalMedia) {
+  return (b.consumed_date || "").localeCompare(a.consumed_date || "") || sourceKey(a).localeCompare(sourceKey(b));
+}
+
+function titleFor(item: CanonicalMedia) {
+  return item.titles.en || item.titles.original || item.titles.zh || item.source_id;
+}
+
+function ratingFor(item: CanonicalMedia) {
+  return item.rating?.value ?? "";
+}

@@ -1,87 +1,63 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 
-import {
-  ApiClient,
-  CanonicalMedia,
-  Destination,
-  ExportJob,
-  MediaType,
-  makeApiClient,
-} from "./src/api";
+import { CanonicalMedia, Destination, MediaType, mergeItems, parseJsonItems, renderExport } from "./src/local-export";
 import { demoItems } from "./src/demoData";
 
-const STORAGE_KEY = "douban-refugee.mobile-settings";
-const DEFAULT_API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
-  (Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://localhost:8000");
+const STORAGE_KEY = "douban-refugee.mobile-library";
 
 const exportTargets: { destination: Destination; label: string; mediaType?: MediaType; primary?: boolean }[] = [
   { destination: "letterboxd", label: "Letterboxd CSV", mediaType: "movie" },
   { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie" },
   { destination: "goodreads", label: "Goodreads CSV", mediaType: "book" },
   { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music" },
-  { destination: "archive", label: "Backup ZIP", primary: true },
+  { destination: "backup", label: "Backup JSON", primary: true },
 ];
 
-type StoredSettings = {
-  apiBase: string;
-  userId?: string;
-};
-
 export default function App() {
-  const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
-  const [userId, setUserId] = useState<string>();
   const [items, setItems] = useState<CanonicalMedia[]>([]);
-  const [mediaType, setMediaType] = useState<MediaType>("movie");
-  const [html, setHtml] = useState("");
+  const [jsonInput, setJsonInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("Connect your local API, then import a sample or pasted Douban HTML.");
-  const [exportJob, setExportJob] = useState<ExportJob>();
+  const [status, setStatus] = useState("Local-only mode. Import JSON or demo records, then share export files.");
 
-  const api = useMemo(() => makeApiClient(apiBase), [apiBase]);
-
-  const saveSettings = useCallback(async (settings: StoredSettings) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, []);
-
-  const refreshLibrary = useCallback(
-    async (client: ApiClient, targetUserId: string) => {
-      const media = await client.listMedia(targetUserId);
-      setItems(media);
-      return media;
-    },
-    [],
+  const counts = useMemo(
+    () => ({
+      movie: items.filter((item) => item.media_type === "movie").length,
+      book: items.filter((item) => item.media_type === "book").length,
+      music: items.filter((item) => item.media_type === "music").length,
+    }),
+    [items],
   );
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then(async (raw) => {
+      .then((raw) => {
         if (!raw) return;
-        const settings = JSON.parse(raw) as StoredSettings;
-        setApiBase(settings.apiBase || DEFAULT_API_BASE);
-        setUserId(settings.userId);
-        if (settings.userId) {
-          const client = makeApiClient(settings.apiBase || DEFAULT_API_BASE);
-          const media = await refreshLibrary(client, settings.userId);
-          setStatus(`Restored ${media.length} saved item(s) for this device.`);
-        }
+        const restored = parseJsonItems(raw);
+        setItems(restored);
+        setStatus(`Restored ${restored.length} local item(s).`);
       })
       .catch((error) => setStatus(messageFrom(error)));
-  }, [refreshLibrary]);
+  }, []);
+
+  async function updateLibrary(nextItems: CanonicalMedia[], message: string) {
+    setItems(nextItems);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems));
+    setStatus(message);
+  }
 
   async function act(action: () => Promise<void>) {
     setBusy(true);
@@ -94,64 +70,34 @@ export default function App() {
     }
   }
 
-  async function receiveImport(importer: () => Promise<{ user_id: string; imported_count: number }>) {
-    const response = await importer();
-    setUserId(response.user_id);
-    await saveSettings({ apiBase: api.baseUrl, userId: response.user_id });
-    const media = await refreshLibrary(api, response.user_id);
-    setStatus(`Imported ${response.imported_count} item(s). Library now has ${media.length} record(s).`);
-  }
-
-  function importDemo() {
-    void act(() => receiveImport(() => api.importCanonical(demoItems, userId)));
-  }
-
-  function importHtml() {
-    if (!html.trim()) {
-      setStatus("Paste exported Douban HTML before importing.");
-      return;
-    }
-    void act(() => receiveImport(() => api.importHtml(html, mediaType, userId)));
-  }
-
-  function refresh() {
-    if (!userId) {
-      setStatus("Import something first to create a local test account.");
-      return;
-    }
+  function importItems(incoming: CanonicalMedia[], label: string) {
     void act(async () => {
-      await saveSettings({ apiBase: api.baseUrl, userId });
-      const media = await refreshLibrary(api, userId);
-      setStatus(`Loaded ${media.length} item(s) from the API.`);
+      const nextItems = mergeItems(items, incoming);
+      await updateLibrary(nextItems, `Imported ${incoming.length} item(s) from ${label}. Library now has ${nextItems.length}.`);
     });
   }
 
-  function runMatching() {
-    if (!userId) {
-      setStatus("Import something first to run matching.");
+  function importJson() {
+    if (!jsonInput.trim()) {
+      setStatus("Paste extension JSON or backup JSON first.");
       return;
     }
+    importItems(parseJsonItems(jsonInput), "pasted JSON");
+    setJsonInput("");
+  }
+
+  function clearLibrary() {
     void act(async () => {
-      const response = await api.runMatching(userId, mediaType);
-      setStatus(`Generated ${response.candidate_count} ${mediaType} candidate match(es).`);
+      await updateLibrary([], "Local library cleared.");
     });
   }
 
-  function exportItems(destination: Destination, filter?: MediaType) {
-    if (!userId) {
-      setStatus("Import something first to export.");
-      return;
-    }
+  function shareExport(destination: Destination, mediaType?: MediaType) {
     void act(async () => {
-      const job = await api.createExport(userId, destination, filter);
-      setExportJob(job);
-      setStatus(`${destination} export is ${job.status}. Tap Download when ready.`);
+      const file = renderExport(items, destination, mediaType);
+      await Share.share({ title: file.filename, message: file.content });
+      setStatus(`Prepared ${file.filename} for sharing.`);
     });
-  }
-
-  function downloadExport() {
-    if (!exportJob) return;
-    void Linking.openURL(api.downloadUrl(exportJob.id));
   }
 
   return (
@@ -160,68 +106,49 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>MOBILE TEST CLIENT</Text>
+            <Text style={styles.badgeText}>LOCAL-ONLY</Text>
           </View>
           <Text style={styles.title}>DoubanRefugee</Text>
-          <Text style={styles.subtitle}>
-            Preserve Douban history on iOS and Android, then export a portable archive.
-          </Text>
+          <Text style={styles.subtitle}>No account, server, or API. Keep your Douban archive on this device.</Text>
         </View>
-
-        <Panel title="Connection">
-          <Text style={styles.label}>API base URL</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            onChangeText={setApiBase}
-            placeholder="http://localhost:8000"
-            style={styles.input}
-            value={apiBase}
-          />
-          <Text style={styles.caption}>
-            Android emulator: http://10.0.2.2:8000. iOS simulator: http://localhost:8000.
-          </Text>
-          {userId ? <Text style={styles.identity}>Saved user: {userId.slice(0, 8)}</Text> : null}
-        </Panel>
 
         <Panel title="Import">
           <View style={styles.row}>
-            <ActionButton label="Import demo records" onPress={importDemo} primary disabled={busy} />
-            <ActionButton label="Refresh library" onPress={refresh} disabled={busy} />
+            <ActionButton label="Import demo records" onPress={() => importItems(demoItems, "demo data")} primary disabled={busy} />
+            <ActionButton label="Clear" onPress={clearLibrary} disabled={busy || items.length === 0} />
           </View>
-          <Text style={styles.label}>Paste a Douban HTML export</Text>
-          <TypeSelector selected={mediaType} onSelect={setMediaType} />
+          <Text style={styles.label}>Paste extension JSON or backup JSON</Text>
           <TextInput
             multiline
-            onChangeText={setHtml}
-            placeholder="<li class='subject-item'>...</li>"
-            style={[styles.input, styles.htmlInput]}
+            onChangeText={setJsonInput}
+            placeholder='{"items":[...]}'
+            style={[styles.input, styles.jsonInput]}
             textAlignVertical="top"
-            value={html}
+            value={jsonInput}
           />
-          <ActionButton label="Import pasted HTML" onPress={importHtml} primary disabled={busy} />
+          <ActionButton label="Import pasted JSON" onPress={importJson} primary disabled={busy || !jsonInput.trim()} />
         </Panel>
 
-        <Panel title="Migrate">
-          <View style={styles.row}>
-            <ActionButton label={`Match ${mediaType}`} onPress={runMatching} disabled={busy} />
-          </View>
+        <Panel title="Export">
           <View style={styles.exportGrid}>
             {exportTargets.map((target) => (
               <ActionButton
                 key={target.destination}
                 label={target.label}
-                onPress={() => exportItems(target.destination, target.mediaType)}
+                onPress={() => shareExport(target.destination, target.mediaType)}
                 primary={target.primary}
-                disabled={busy}
+                disabled={busy || items.length === 0}
               />
             ))}
           </View>
-          {exportJob ? <ActionButton label="Download last export" onPress={downloadExport} disabled={busy} /> : null}
         </Panel>
 
-        <Panel title={`Canonical Library (${items.length})`}>
+        <Panel title={`Local Library (${items.length})`}>
+          <View style={styles.metrics}>
+            <Metric label="movies" value={counts.movie} />
+            <Metric label="books" value={counts.book} />
+            <Metric label="music" value={counts.music} />
+          </View>
           {items.length === 0 ? (
             <Text style={styles.empty}>No media imported on this device yet.</Text>
           ) : (
@@ -275,24 +202,11 @@ function ActionButton({
   );
 }
 
-function TypeSelector({
-  onSelect,
-  selected,
-}: {
-  onSelect: (type: MediaType) => void;
-  selected: MediaType;
-}) {
+function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <View style={styles.chips}>
-      {(["movie", "book", "music"] as const).map((type) => (
-        <Pressable
-          key={type}
-          onPress={() => onSelect(type)}
-          style={[styles.chip, selected === type && styles.chipActive]}
-        >
-          <Text style={[styles.chipText, selected === type && styles.chipTextActive]}>{type}</Text>
-        </Pressable>
-      ))}
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
     </View>
   );
 }
@@ -355,9 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  htmlInput: { minHeight: 92 },
-  caption: { color: "#647773", fontSize: 12, lineHeight: 18 },
-  identity: { color: "#087f78", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 },
+  jsonInput: { minHeight: 112 },
   row: { flexDirection: "row", gap: 8 },
   exportGrid: { gap: 8 },
   button: {
@@ -376,17 +288,16 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.8 },
   buttonText: { color: "#27413e", fontSize: 13, fontWeight: "700", textAlign: "center" },
   buttonTextPrimary: { color: "#ffffff" },
-  chips: { flexDirection: "row", gap: 7 },
-  chip: { borderColor: "#cddad7", borderRadius: 99, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
-  chipActive: { backgroundColor: "#def1ed", borderColor: "#087f78" },
-  chipText: { color: "#647773", fontSize: 13, textTransform: "capitalize" },
-  chipTextActive: { color: "#087f78", fontWeight: "700" },
+  metrics: { flexDirection: "row", gap: 8 },
+  metric: { backgroundColor: "#eef5f3", borderRadius: 10, flex: 1, padding: 10 },
+  metricValue: { color: "#172c2b", fontSize: 20, fontWeight: "700" },
+  metricLabel: { color: "#647773", fontSize: 11, textTransform: "uppercase" },
   empty: { color: "#647773", fontSize: 14, paddingVertical: 8 },
   mediaRow: { borderTopColor: "#e8eeec", borderTopWidth: 1, flexDirection: "row", gap: 10, paddingTop: 10 },
   mediaMain: { flex: 1, gap: 3 },
   mediaTitle: { color: "#172c2b", fontSize: 14, fontWeight: "600" },
   mediaMeta: { color: "#647773", fontSize: 12 },
-  rating: { color: "#087f78", fontSize: 13, fontWeight: "700" },
+  rating: { color: "#087f78", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, fontWeight: "700" },
   status: {
     alignItems: "center",
     backgroundColor: "#def1ed",

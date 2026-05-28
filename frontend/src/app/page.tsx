@@ -1,69 +1,23 @@
 "use client";
 
-import { Archive, Check, Download, FileJson, Gauge, Languages, RefreshCcw, ShieldCheck, Upload, WandSparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Archive, Download, FileJson, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { CanonicalMedia, Destination, MediaType, createExport, downloadUrl, importBrowserExtension, runMatching } from "@/lib/api";
-
-const sampleItems: CanonicalMedia[] = [
-  {
-    media_type: "movie",
-    source_platform: "douban",
-    source_id: "1291557",
-    titles: { zh: "花样年华", en: "In the Mood for Love", original: "花樣年華" },
-    year: 2000,
-    rating: { value: 5, scale: 5 },
-    review: "A preserved sample entry from the onboarding wizard.",
-    consumed_date: "2024-01-02",
-    tags: ["douban", "migration"],
-    external_ids: { imdb: "tt0118694" },
-  },
-  {
-    media_type: "movie",
-    source_platform: "douban",
-    source_id: "1305690",
-    titles: { zh: "阿飞正传", en: "Days of Being Wild", original: "阿飛正傳" },
-    year: 1990,
-    rating: { value: 4.5, scale: 5 },
-    consumed_date: "2024-02-12",
-    tags: ["manual-review"],
-    external_ids: {},
-  },
-  {
-    media_type: "book",
-    source_platform: "douban",
-    source_id: "2567698",
-    titles: { zh: "三体", en: "The Three-Body Problem" },
-    year: 2008,
-    rating: { value: 5, scale: 5 },
-    review: "A preserved book entry for Goodreads migration.",
-    consumed_date: "2024-03-08",
-    tags: ["book", "sci-fi"],
-    external_ids: { isbn: "9787536692930", author: "Liu Cixin" },
-  },
-  {
-    media_type: "music",
-    source_platform: "douban",
-    source_id: "1394653",
-    titles: { en: "OK Computer" },
-    year: 1997,
-    rating: { value: 5, scale: 5 },
-    review: "A preserved music entry for RateYourMusic migration.",
-    consumed_date: "2024-03-09",
-    tags: ["music", "rock"],
-    external_ids: { artist: "Radiohead", barcode: "0724385522925" },
-  },
-];
-
-const phases = [
-  ["Phase 1", "Douban backup and destination CSVs", "active"],
-  ["Phase 2", "Matching engine and manual review", "ready"],
-  ["Phase 3", "Goodreads, Filmarks, and RateYourMusic", "ready"],
-  ["Phase 4", "Sync automation", "planned"],
-];
+import {
+  CanonicalMedia,
+  Destination,
+  MediaType,
+  demoItems,
+  downloadFile,
+  loadLibrary,
+  mergeItems,
+  parseDoubanHtml,
+  parseJsonItems,
+  renderExport,
+  saveLibrary,
+} from "@/lib/local-export";
 
 const exportTargets: {
   destination: Destination;
@@ -75,40 +29,95 @@ const exportTargets: {
   { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie", variant: "secondary" },
   { destination: "goodreads", label: "Goodreads CSV", mediaType: "book", variant: "secondary" },
   { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music", variant: "secondary" },
-  { destination: "archive", label: "Backup ZIP", variant: "accent" },
+  { destination: "backup", label: "Backup JSON", variant: "accent" },
 ];
 
 export default function Home() {
-  const [userId, setUserId] = useState<string>();
-  const [status, setStatus] = useState("Ready to ingest a local browser-extension payload.");
-  const [progress, setProgress] = useState(18);
-  const [exportJob, setExportJob] = useState<{ id: string; label: string }>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [items, setItems] = useState<CanonicalMedia[]>([]);
+  const [jsonText, setJsonText] = useState("");
+  const [html, setHtml] = useState("");
+  const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
+  const [status, setStatus] = useState("Everything runs locally. Import data, export files, no backend needed.");
 
-  const matched = useMemo(() => (progress >= 70 ? 1 : 0), [progress]);
+  const counts = useMemo(
+    () => ({
+      movie: items.filter((item) => item.media_type === "movie").length,
+      book: items.filter((item) => item.media_type === "book").length,
+      music: items.filter((item) => item.media_type === "music").length,
+    }),
+    [items],
+  );
 
-  async function handleImport() {
-    setStatus("Importing canonical Douban movie history...");
-    const response = await importBrowserExtension(sampleItems, userId);
-    setUserId(response.user_id);
-    setProgress(46);
-    setStatus(`Imported ${response.imported_count} items into snapshot ${response.snapshot_id.slice(0, 8)}.`);
+  useEffect(() => {
+    try {
+      setItems(loadLibrary());
+    } catch (error) {
+      setStatus(messageFrom(error));
+    }
+  }, []);
+
+  function updateLibrary(nextItems: CanonicalMedia[], message: string) {
+    setItems(nextItems);
+    saveLibrary(nextItems);
+    setStatus(message);
   }
 
-  async function handleMatch() {
-    if (!userId) return;
-    setStatus("Running layered multilingual matching...");
-    const response = await runMatching(userId);
-    setProgress(74);
-    setStatus(`Generated ${response.candidate_count} candidates. Low-confidence items are queued for review.`);
+  function importItems(incoming: CanonicalMedia[], label: string) {
+    if (incoming.length === 0) {
+      setStatus(`No items found in ${label}.`);
+      return;
+    }
+    const nextItems = mergeItems(items, incoming);
+    updateLibrary(nextItems, `Imported ${incoming.length} item(s) from ${label}. Library now has ${nextItems.length}.`);
   }
 
-  async function handleExport(target: (typeof exportTargets)[number]) {
-    if (!userId) return;
-    setStatus(`Rendering ${target.label}...`);
-    const response = await createExport(userId, target.destination, target.mediaType);
-    setExportJob({ id: response.id, label: target.label });
-    setProgress(100);
-    setStatus(`${target.label} export ${response.id.slice(0, 8)} is ${response.status}.`);
+  function importDemo() {
+    importItems(demoItems, "demo data");
+  }
+
+  function importHtml() {
+    try {
+      importItems(parseDoubanHtml(html, htmlMediaType), "pasted Douban HTML");
+      setHtml("");
+    } catch (error) {
+      setStatus(messageFrom(error));
+    }
+  }
+
+  async function importFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      importItems(parseJsonItems(await file.text()), file.name);
+    } catch (error) {
+      setStatus(messageFrom(error));
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function importJsonText() {
+    try {
+      importItems(parseJsonItems(jsonText), "pasted JSON");
+      setJsonText("");
+    } catch (error) {
+      setStatus(messageFrom(error));
+    }
+  }
+
+  function exportFile(target: (typeof exportTargets)[number]) {
+    try {
+      const file = renderExport(items, target.destination, target.mediaType);
+      downloadFile(file);
+      setStatus(`Downloaded ${file.filename}.`);
+    } catch (error) {
+      setStatus(messageFrom(error));
+    }
+  }
+
+  function clearLibrary() {
+    updateLibrary([], "Local library cleared.");
   }
 
   return (
@@ -117,86 +126,115 @@ export default function Home() {
         <header className="flex flex-col gap-5 border-b bg-background/80 pb-6 backdrop-blur md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-primary/30 text-primary">privacy-first</Badge>
-              <Badge>canonical schema</Badge>
-              <Badge>API-first</Badge>
+              <Badge className="border-primary/30 text-primary">local-only</Badge>
+              <Badge>no backend</Badge>
+              <Badge>private by default</Badge>
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              A migration cockpit for preserving Douban cultural history, normalizing multilingual metadata, and exporting portable archives.
+              A simple browser tool for preserving Douban history and exporting portable files. Your data stays on this device unless you download it.
             </p>
           </div>
-          <div className="grid min-w-72 grid-cols-3 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
-            <Metric label="items" value={sampleItems.length.toString()} />
-            <Metric label="matched" value={matched.toString()} />
-            <Metric label="exports" value={exportJob ? "1" : "0"} />
+          <div className="grid min-w-72 grid-cols-4 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
+            <Metric label="items" value={items.length.toString()} />
+            <Metric label="movies" value={counts.movie.toString()} />
+            <Metric label="books" value={counts.book.toString()} />
+            <Metric label="music" value={counts.music.toString()} />
           </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-          <aside className="space-y-3">
-            {phases.map(([phase, label, state]) => (
-              <Card key={phase} className={state === "active" ? "border-primary/50 bg-primary/5" : ""}>
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm">{phase}</CardTitle>
-                    <Badge>{state}</Badge>
-                  </div>
-                  <CardDescription>{label}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </aside>
-
-          <section className="space-y-6">
-            <Card className="ledger-panel">
+        <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <div className="space-y-6">
+            <Card>
               <CardHeader>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <CardTitle>Migration Wizard</CardTitle>
-                    <CardDescription>{status}</CardDescription>
-                  </div>
-                  <Progress value={progress} className="w-full md:w-64" />
-                </div>
+                <CardTitle>Import</CardTitle>
+                <CardDescription>Use the extension JSON, pasted HTML, or sample data.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Button onClick={handleImport} variant="default">
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <Button onClick={importDemo}>
                     <Upload className="h-4 w-4" />
-                    Import Douban
+                    Import Demo
                   </Button>
-                  <Button onClick={handleMatch} disabled={!userId} variant="secondary">
-                    <WandSparkles className="h-4 w-4" />
-                    Match Metadata
+                  <Button onClick={() => fileInputRef.current?.click()} variant="secondary">
+                    <FileJson className="h-4 w-4" />
+                    Import JSON
                   </Button>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-5">
-                  {exportTargets.map((target) => (
-                    <Button key={target.destination} onClick={() => handleExport(target)} disabled={!userId} variant={target.variant ?? "secondary"} size="sm">
-                      <Download className="h-4 w-4" />
-                      {target.label}
-                    </Button>
-                  ))}
+                <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importFile} />
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium uppercase text-muted-foreground">Extension or backup JSON</label>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border bg-background p-3 text-sm outline-none ring-ring focus:ring-2"
+                    onChange={(event) => setJsonText(event.target.value)}
+                    placeholder='{"items":[...]}'
+                    value={jsonText}
+                  />
+                  <Button onClick={importJsonText} variant="secondary" disabled={!jsonText.trim()}>
+                    Import Pasted JSON
+                  </Button>
                 </div>
-                {exportJob ? (
-                  <a className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" href={downloadUrl(exportJob.id)}>
-                    Download {exportJob.label}
-                  </a>
-                ) : null}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium uppercase text-muted-foreground">Pasted HTML media type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["movie", "book", "music"] as const).map((type) => (
+                      <Button key={type} onClick={() => setHtmlMediaType(type)} variant={htmlMediaType === type ? "default" : "secondary"} size="sm">
+                        {type}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  className="min-h-28 w-full rounded-md border bg-background p-3 text-sm outline-none ring-ring focus:ring-2"
+                  onChange={(event) => setHtml(event.target.value)}
+                  placeholder="<li class='subject-item'>...</li>"
+                  value={html}
+                />
+                <Button onClick={importHtml} variant="secondary" disabled={!html.trim()}>
+                  Import Pasted HTML
+                </Button>
               </CardContent>
             </Card>
 
-            <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Canonical Media Ledger</CardTitle>
-                  <CardDescription>Destination adapters read from this normalized record, not from Douban-specific HTML.</CardDescription>
-                </CardHeader>
-                <CardContent className="overflow-x-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Export</CardTitle>
+                <CardDescription>Generate destination files directly in the browser.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {exportTargets.map((target) => (
+                  <Button key={target.destination} onClick={() => exportFile(target)} disabled={items.length === 0} variant={target.variant ?? "secondary"}>
+                    <Download className="h-4 w-4" />
+                    {target.label}
+                  </Button>
+                ))}
+                <Button onClick={clearLibrary} disabled={items.length === 0} variant="ghost">
+                  <Trash2 className="h-4 w-4" />
+                  Clear Local Library
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="ledger-panel">
+              <CardHeader>
+                <CardTitle>Local Library</CardTitle>
+                <CardDescription>{status}</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                {items.length === 0 ? (
+                  <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
+                    No data imported yet. Start with the demo or load JSON from the extension.
+                  </div>
+                ) : (
                   <table className="w-full min-w-[720px] text-left text-sm">
                     <thead className="border-b text-xs uppercase text-muted-foreground">
                       <tr>
                         <th className="py-2">Title</th>
+                        <th>Type</th>
                         <th>Year</th>
                         <th>Rating</th>
                         <th>Consumed</th>
@@ -204,44 +242,34 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sampleItems.map((item) => (
-                        <tr key={item.source_id} className="border-b last:border-0">
+                      {items.map((item) => (
+                        <tr key={`${item.media_type}:${item.source_id}`} className="border-b last:border-0">
                           <td className="py-3">
-                            <div className="font-medium">{item.titles.en}</div>
-                            <div className="font-mono text-xs text-muted-foreground">{item.titles.zh} · {item.source_id}</div>
+                            <div className="font-medium">{item.titles.en || item.titles.original || item.titles.zh || item.source_id}</div>
+                            <div className="font-mono text-xs text-muted-foreground">
+                              {item.titles.zh || "Douban"} · {item.source_id}
+                            </div>
                           </td>
-                          <td>{item.year}</td>
-                          <td>{item.rating?.value}/{item.rating?.scale}</td>
-                          <td>{item.consumed_date}</td>
-                          <td className="font-mono text-xs">{Object.keys(item.external_ids ?? {}).join(", ") || "pending"}</td>
+                          <td>{item.media_type}</td>
+                          <td>{item.year || ""}</td>
+                          <td>{item.rating ? `${item.rating.value}/${item.rating.scale}` : ""}</td>
+                          <td>{item.consumed_date || ""}</td>
+                          <td className="font-mono text-xs">{Object.keys(item.external_ids ?? {}).join(", ") || "none"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </CardContent>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manual Review Queue</CardTitle>
-                  <CardDescription>Uncertain matches stay visible until a user-selected mapping is persisted.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <ReviewRow icon={Languages} title="Chinese / English aliases" detail="花樣年華 resolves through alternate titles before fuzzy scoring." />
-                  <ReviewRow icon={Gauge} title="Confidence tiers" detail="Exact, high, medium, and manual-review scores are stored per candidate." />
-                  <ReviewRow icon={RefreshCcw} title="Correction memory" detail="Manual selections become reusable mappings for future exports." />
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Capability icon={ShieldCheck} title="No Server" text="No API, accounts, database, Redis, or hosting bill." />
+              <Capability icon={FileJson} title="Backup JSON" text="Download a full canonical backup you can re-import later." />
+              <Capability icon={Archive} title="Destination CSVs" text="Export Letterboxd, Filmarks, Goodreads, and RateYourMusic files." />
             </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <Capability icon={ShieldCheck} title="No passwords" text="Cookies are optional and encrypted; browser extraction is preferred." />
-              <Capability icon={FileJson} title="Portable archive" text="JSON, CSV, ZIP, and Markdown outputs preserve the user record." />
-              <Capability icon={Archive} title="Long-lived schema" text="Canonical media items isolate preservation from platform churn." />
-              <Capability icon={Check} title="Adapter checks" text="Every destination adapter validates output before download." />
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </section>
     </main>
   );
@@ -252,18 +280,6 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="rounded-sm bg-muted/60 p-3">
       <div className="text-lg font-semibold">{value}</div>
       <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-function ReviewRow({ icon: Icon, title, detail }: { icon: typeof Languages; title: string; detail: string }) {
-  return (
-    <div className="flex gap-3 rounded-md border bg-background/70 p-3">
-      <Icon className="mt-0.5 h-4 w-4 text-primary" />
-      <div>
-        <div className="text-sm font-medium">{title}</div>
-        <div className="text-sm text-muted-foreground">{detail}</div>
-      </div>
     </div>
   );
 }
@@ -280,3 +296,6 @@ function Capability({ icon: Icon, title, text }: { icon: typeof Archive; title: 
   );
 }
 
+function messageFrom(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}

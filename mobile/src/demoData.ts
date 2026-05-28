@@ -1,4 +1,4 @@
-import { CanonicalMedia } from "./api";
+import { CanonicalMedia } from "./local-export";
 
 export const demoItems: CanonicalMedia[] = [
   {

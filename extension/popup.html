@@ -9,14 +9,14 @@
   <body>
     <main>
       <header>
-        <p class="eyebrow">Local test extractor</p>
+        <p class="eyebrow">Local extractor</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Extract visible Douban entries from this tab and import them into your local API.</p>
+        <p class="hint">Extract visible Douban entries from this tab. No backend, no account, just JSON.</p>
       </header>
 
       <label>
-        API base URL
-        <input id="apiBase" type="url" value="http://localhost:8000">
+        Web app URL
+        <input id="webAppUrl" type="url" value="http://localhost:3000">
       </label>
 
       <label>
@@ -30,7 +30,9 @@
 
       <div class="actions">
         <button id="extractButton" type="button">Extract page</button>
-        <button id="importButton" type="button" disabled>Import to API</button>
+        <button id="copyButton" type="button" disabled>Copy JSON</button>
+        <button id="downloadButton" type="button" disabled>Download JSON</button>
+        <button id="openButton" type="button">Open web app</button>
       </div>
 
       <section class="status">

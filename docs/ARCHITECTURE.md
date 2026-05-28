@@ -1,42 +1,36 @@
 # Architecture
 
-DoubanRefugee is built around a canonical media model. Ingestion, matching, and
-destination exports depend on that model instead of depending on each other.
+DoubanRefugee is local-first and backend-free. The canonical media record lives
+in the browser or mobile app, then export renderers turn that record into
+destination files.
 
 ```mermaid
 flowchart LR
-  U["User"] --> UI["Next.js migration wizard"]
-  U --> E["Browser extension"]
-  U --> M["Expo mobile app (iOS / Android)"]
-  UI --> API["FastAPI API"]
-  E --> API
-  M --> API
-  API --> DB[("PostgreSQL")]
-  API --> R[("Redis broker")]
-  R --> W["Dramatiq workers"]
-  W --> M["Matching providers"]
-  W --> X["Export adapters"]
-  X --> S["ZIP/CSV/JSON/Markdown files"]
+  D["Douban page"] --> E["Browser extension"]
+  E --> J["Import JSON"]
+  J --> W["Static web app"]
+  J --> M["Expo mobile app"]
+  W --> L["Browser localStorage"]
+  M --> S["Device local storage"]
+  L --> X["CSV / backup JSON"]
+  S --> X
 ```
 
-## Bounded Contexts
+## Components
 
-- **Ingestion**: Accepts browser-extension JSON, uploaded HTML, or optional
-  Playwright snapshots. Produces canonical media items and backup snapshots.
-- **Canonical library**: Stores normalized `MediaItem`, `Rating`, `Review`,
-  `BackupSnapshot`, `MatchCandidate`, and `ExportJob` records.
-- **Matching**: Uses layered exact, alternate-title, fuzzy, and metadata-assisted
-  ranking. Manual overrides are persisted separately from provider results.
-- **Exports**: Destination adapters transform canonical items into platform
-  CSVs or archival bundles.
-- **Privacy**: Sensitive session data is encrypted. Export artifacts can be
-  short-lived and removed by retention jobs.
+- **Extension**: extracts visible Douban subject/list entries and downloads or
+  copies JSON.
+- **Web app**: imports JSON or pasted HTML, stores the library in
+  `localStorage`, and downloads export files.
+- **Mobile app**: imports JSON or demo records, stores the library on device,
+  and shares export text through the OS share sheet.
+- **Canonical model**: one shared shape for movies, books, and music.
 
-## Anti-Fragile Defaults
+## Deliberate Omissions
 
-- Destination-specific logic lives in adapters.
-- Source-specific quirks live in importers.
-- Manual mappings improve later exports.
-- Jobs are idempotent and persisted.
-- Network providers are optional; lack of a provider degrades to review queue.
-
+- No server API.
+- No account system.
+- No PostgreSQL or Redis.
+- No background workers.
+- No hosted backups.
+- No paid metadata-provider keys.

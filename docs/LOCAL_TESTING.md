@@ -1,23 +1,6 @@
 # Local Testing
 
-This project can be tested without production infrastructure by running the
-backend, frontend, mobile app, and unpacked browser extension locally.
-
-## Backend
-
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-pytest
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The backend uses SQLite by default when `DATABASE_URL` is not set, so it can run
-without Docker for local smoke tests.
-
-## Frontend
+## Web App
 
 ```bash
 cd frontend
@@ -25,7 +8,8 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. Import demo data, pasted Douban HTML, or JSON from
+the extension. Export each destination file from the browser.
 
 ## Extension
 
@@ -36,15 +20,11 @@ Open `http://localhost:3000`.
 5. Select the repository's `extension` folder.
 6. Open a Douban subject, collection, or list page.
 7. Click the DoubanRefugee extension icon.
-8. Confirm the API base is `http://localhost:8000`.
-9. Click "Extract page", then "Import to API".
-
-The extension saves the returned `user_id` in extension local storage, so repeat
-imports update the same local test account.
+8. Click "Extract page".
+9. Download or copy JSON.
+10. Import that JSON in the web app.
 
 ## Mobile App
-
-The Expo app targets both Android and iOS:
 
 ```bash
 cd mobile
@@ -52,22 +32,11 @@ npm ci
 npm run android
 ```
 
-On macOS, use `npm run ios` to launch the iOS simulator. Android emulators use
-`http://10.0.2.2:8000` for the local backend; iOS simulators use
-`http://localhost:8000`. Physical Android devices can use a reachable LAN
-backend URL. For physical iOS devices, use an HTTPS tunnel URL unless an
-additional App Transport Security exception is configured.
-
-The app imports built-in real-record fixtures or pasted Douban HTML, displays
-canonical media, triggers matching, and downloads Letterboxd, Filmarks,
-Goodreads, RateYourMusic, or backup archive exports.
+On macOS, use `npm run ios` to launch the iOS simulator. The mobile app imports
+demo records or pasted JSON and shares CSV/backup output through the OS share
+sheet.
 
 ## Verification Commands
-
-```bash
-cd backend
-.venv\Scripts\python.exe -m pytest
-```
 
 ```bash
 cd frontend
