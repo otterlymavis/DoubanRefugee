@@ -1,19 +1,21 @@
 # DoubanRefugee
 
-DoubanRefugee is a local-only migration tool for scraping your own Douban movie,
-book, and music history, then converting that history into transfer files for
-other tracking sites.
+DoubanRefugee is a local-only migration tool for scraping a Douban user's movie
+history, then converting watched movies and watchlist entries into transfer
+files for Letterboxd and other tracking sites.
 
 No backend. No database. No accounts. No hosting bill.
 
 ## What It Does
 
-- Scrapes paginated Douban collection/history pages from your logged-in browser
-  session.
+- Scrapes Douban movie user pages, using `/collect` for watched movies and
+  `/wish` for watchlist entries.
+- Preserves watched ratings, marked dates, tags, and short reviews/comments
+  when Douban exposes them on the user history page.
 - Imports scraped Douban JSON or pasted Douban HTML in the web app.
 - Stores the working library in browser or mobile local storage.
-- Exports transfer CSV files for Letterboxd, Filmarks, Goodreads, and
-  RateYourMusic.
+- Exports separate Letterboxd watched-history and Letterboxd watchlist CSV
+  files, plus transfer CSV files for Filmarks, Goodreads, and RateYourMusic.
 - Exports a full `douban-refugee-backup.json` file that can be re-imported.
 - Keeps the transfer step user-controlled: download the generated file, then
   upload/import it on the destination site where that site supports imports.
@@ -47,16 +49,18 @@ Open chrome://extensions, enable Developer Mode, choose Load unpacked,
 and select the extension/ folder.
 ```
 
-Open your own Douban collection/history page, such as a movie `collect` page,
+Open your Douban movie user page, such as `https://movie.douban.com/people/<id>/collect`,
 click the extension icon, choose "Scrape whole history", download JSON, then
-import that JSON in the web app. The scraper follows Douban pagination until the
-history ends or the safety limit is reached. Leave the extension's local web app
-address as `http://localhost:3000` unless you serve the static frontend
-somewhere else.
+import that JSON in the web app. The extension automatically reads both
+`/collect` and `/wish` for that movie user and follows pagination until each
+section ends or the safety limit is reached. Leave the extension's local web app
+address as `http://localhost:3000` unless you serve the static frontend somewhere
+else.
 
-For Letterboxd, upload the generated `letterboxd.csv` through Letterboxd's
-import flow. Other destinations receive best-effort transfer CSVs that can be
-used where import tools or manual spreadsheet workflows are available.
+For Letterboxd, upload `letterboxd.csv` through the normal account import flow
+and upload `letterboxd-watchlist.csv` through Letterboxd's watchlist import
+flow. Other destinations receive best-effort transfer CSVs that can be used
+where import tools or manual spreadsheet workflows are available.
 
 Mobile app:
 

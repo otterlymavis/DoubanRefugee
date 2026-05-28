@@ -25,7 +25,8 @@ const exportTargets: {
   mediaType?: MediaType;
   variant?: "secondary" | "accent";
 }[] = [
-  { destination: "letterboxd", label: "Letterboxd import CSV", mediaType: "movie", variant: "accent" },
+  { destination: "letterboxd", label: "Letterboxd watched CSV", mediaType: "movie", variant: "accent" },
+  { destination: "letterboxd-watchlist", label: "Letterboxd watchlist CSV", mediaType: "movie", variant: "accent" },
   { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie", variant: "secondary" },
   { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book", variant: "secondary" },
   { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music", variant: "secondary" },
@@ -132,8 +133,8 @@ export default function Home() {
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Scrape your whole logged-in Douban movie, book, and music history, then turn it into files for Letterboxd, Filmarks, Goodreads,
-              RateYourMusic, or a full backup. Your data stays on this device unless you export it.
+              Scrape your logged-in Douban movie history, including watched films with ratings/reviews and wanted films for watchlist transfer.
+              Then export separate Letterboxd watched and watchlist CSVs. Your data stays on this device unless you export it.
             </p>
           </div>
           <div className="grid min-w-72 grid-cols-4 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
@@ -238,7 +239,8 @@ export default function Home() {
                         <th>Type</th>
                         <th>Year</th>
                         <th>Rating</th>
-                        <th>Consumed</th>
+                        <th>Status</th>
+                        <th>Date</th>
                         <th>External IDs</th>
                       </tr>
                     </thead>
@@ -254,7 +256,8 @@ export default function Home() {
                           <td>{item.media_type}</td>
                           <td>{item.year || ""}</td>
                           <td>{item.rating ? `${item.rating.value}/${item.rating.scale}` : ""}</td>
-                          <td>{item.consumed_date || ""}</td>
+                          <td>{item.collection_status || ""}</td>
+                          <td>{item.consumed_date || item.marked_date || ""}</td>
                           <td className="font-mono text-xs">{Object.keys(item.external_ids ?? {}).join(", ") || "none"}</td>
                         </tr>
                       ))}

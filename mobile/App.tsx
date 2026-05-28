@@ -20,7 +20,8 @@ import { demoItems } from "./src/demoData";
 const STORAGE_KEY = "douban-refugee.mobile-library";
 
 const exportTargets: { destination: Destination; label: string; mediaType?: MediaType; primary?: boolean }[] = [
-  { destination: "letterboxd", label: "Letterboxd import CSV", mediaType: "movie" },
+  { destination: "letterboxd", label: "Letterboxd watched CSV", mediaType: "movie" },
+  { destination: "letterboxd-watchlist", label: "Letterboxd watchlist CSV", mediaType: "movie" },
   { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie" },
   { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book" },
   { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music" },

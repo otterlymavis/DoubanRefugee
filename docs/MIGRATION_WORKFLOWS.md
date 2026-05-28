@@ -3,22 +3,25 @@
 ## Douban History to Web
 
 1. Sign in to Douban in Chrome or Edge.
-2. Open your own Douban collection/history page for movies, books, or music,
-   for example a movie `collect` page.
+2. Open a Douban movie user page, for example
+   `https://movie.douban.com/people/<id>/collect`.
 3. Use the extension's "Scrape whole history" action.
-4. Keep the safety limit high enough for your history. The extension follows
-   Douban pagination until there is no next page or the safety limit is reached,
-   and deduplicates subject IDs.
+4. Keep the safety limit high enough for the user's history. The extension reads
+   both `/collect` and `/wish`, follows Douban pagination until there is no next
+   page or the safety limit is reached, and deduplicates subject IDs by status.
 5. Download or copy JSON.
 6. Import the JSON into the web app.
-7. Download Letterboxd, Filmarks, Goodreads, RateYourMusic, or backup JSON.
+7. Download Letterboxd watched CSV, Letterboxd watchlist CSV, Filmarks,
+   Goodreads, RateYourMusic, or backup JSON.
 
 ## Letterboxd Transfer
 
-1. Scrape the whole Douban movie history with the extension.
+1. Scrape the Douban movie user pages with the extension.
 2. Import the JSON into the web app.
 3. Download `letterboxd.csv`.
-4. Upload that CSV through Letterboxd's import flow.
+4. Download `letterboxd-watchlist.csv`.
+5. Upload `letterboxd.csv` through Letterboxd's account import flow.
+6. Upload `letterboxd-watchlist.csv` through Letterboxd's watchlist import flow.
 
 ## Pasted HTML to Web
 

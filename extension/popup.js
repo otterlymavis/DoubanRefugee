@@ -99,7 +99,9 @@ async function scrapeHistory() {
   copyButton.disabled = !hasItems;
   downloadButton.disabled = !hasItems;
   const limitNote = response.reached_max_pages ? " The safety limit was reached; increase it and scrape again if your history is longer." : "";
-  setStatus(`Scraped ${extractedPayload.items.length} history item(s) from ${response.pages?.length || 0} Douban page(s).${limitNote} Download JSON, then import it in the web app for Letterboxd/export files.`);
+  const watchedCount = extractedPayload.items.filter((item) => item.collection_status === "watched").length;
+  const watchlistCount = extractedPayload.items.filter((item) => item.collection_status === "watchlist").length;
+  setStatus(`Scraped ${watchedCount} watched and ${watchlistCount} watchlist movie item(s) from ${response.pages?.length || 0} Douban page(s).${limitNote} Download JSON, then import it in the web app for Letterboxd files.`);
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -139,7 +141,7 @@ function downloadJson() {
 
 scrapeButton.addEventListener("click", async () => {
   scrapeButton.disabled = true;
-  setStatus("Scraping whole paginated Douban history from this tab...");
+  setStatus("Scraping paginated Douban watched and watchlist movie pages from this tab...");
   try {
     await scrapeHistory();
   } catch (error) {

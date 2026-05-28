@@ -11,6 +11,8 @@ this shape:
       "media_type": "movie",
       "source_platform": "douban",
       "source_id": "1291557",
+      "source_url": "https://movie.douban.com/subject/1291557/",
+      "collection_status": "watched",
       "titles": {
         "en": "In the Mood for Love"
       },
@@ -20,6 +22,7 @@ this shape:
         "scale": 5
       },
       "review": "",
+      "marked_date": "2024-01-02",
       "consumed_date": "2024-01-02",
       "tags": ["douban"],
       "external_ids": {
@@ -44,6 +47,10 @@ Optional fields:
 - `year`
 - `rating`
 - `review`
+- `collection_status`: `watched`, `watchlist`, or `watching`.
+- `source_url`
+- `poster_url`
+- `marked_date`: when the user marked the item on Douban.
 - `consumed_date`
 - `tags`
 - `external_ids`

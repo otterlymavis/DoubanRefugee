@@ -1,14 +1,19 @@
 export type MediaType = "movie" | "book" | "music";
-export type Destination = "letterboxd" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
+export type CollectionStatus = "watched" | "watchlist" | "watching";
+export type Destination = "letterboxd" | "letterboxd-watchlist" | "filmarks" | "goodreads" | "rateyourmusic" | "backup";
 
 export type CanonicalMedia = {
   media_type: MediaType;
   source_platform: "douban";
   source_id: string;
+  source_url?: string;
+  poster_url?: string;
+  collection_status?: CollectionStatus;
   titles: Record<string, string>;
   year?: number;
   rating?: { value: number; scale: number } | null;
   review?: string | null;
+  marked_date?: string | null;
   consumed_date?: string | null;
   tags?: string[];
   external_ids?: Record<string, string>;
@@ -27,6 +32,7 @@ export const demoItems: CanonicalMedia[] = [
     media_type: "movie",
     source_platform: "douban",
     source_id: "1291557",
+    collection_status: "watched",
     titles: { en: "In the Mood for Love" },
     year: 2000,
     rating: { value: 5, scale: 5 },
@@ -39,11 +45,12 @@ export const demoItems: CanonicalMedia[] = [
     media_type: "movie",
     source_platform: "douban",
     source_id: "1305690",
+    collection_status: "watchlist",
     titles: { en: "Days of Being Wild" },
     year: 1990,
-    rating: { value: 4.5, scale: 5 },
-    consumed_date: "2024-02-12",
-    tags: ["manual-review"],
+    rating: null,
+    marked_date: "2024-02-12",
+    tags: ["douban-watchlist"],
     external_ids: {},
   },
   {
@@ -135,7 +142,7 @@ export function parseDoubanHtml(html: string, mediaType: MediaType): CanonicalMe
 }
 
 export function renderExport(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType): ExportFile {
-  const scoped = mediaType ? items.filter((item) => item.media_type === mediaType) : items;
+  const scoped = scopedItems(items, destination, mediaType);
   if (scoped.length === 0) {
     throw new Error(`No ${mediaType || "media"} items available for this export.`);
   }
@@ -148,6 +155,12 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         ratingFor(item),
         item.consumed_date || "",
         item.review || "",
+        (item.tags || []).join(", "),
+      ]);
+    case "letterboxd-watchlist":
+      return csvFile("letterboxd-watchlist.csv", ["Title", "Year", "Tags"], scoped, (item) => [
+        titleFor(item),
+        item.year || "",
         (item.tags || []).join(", "),
       ]);
     case "filmarks":
@@ -219,10 +232,14 @@ function normalizeItem(item: CanonicalMedia): CanonicalMedia {
     media_type: item.media_type,
     source_platform: "douban",
     source_id: String(item.source_id),
+    source_url: item.source_url || undefined,
+    poster_url: item.poster_url || undefined,
+    collection_status: item.collection_status,
     titles: item.titles || {},
     year: item.year,
     rating: item.rating || null,
     review: item.review || null,
+    marked_date: item.marked_date || null,
     consumed_date: item.consumed_date || null,
     tags: item.tags || [],
     external_ids: item.external_ids || {},
@@ -234,7 +251,7 @@ function compactItem(item: CanonicalMedia): CanonicalMedia {
 }
 
 function sourceKey(item: CanonicalMedia) {
-  return `${item.media_type}:${item.source_platform}:${item.source_id}`;
+  return `${item.media_type}:${item.source_platform}:${item.source_id}:${item.collection_status || "item"}`;
 }
 
 function compareMedia(a: CanonicalMedia, b: CanonicalMedia) {
@@ -247,6 +264,15 @@ function titleFor(item: CanonicalMedia) {
 
 function ratingFor(item: CanonicalMedia) {
   return item.rating?.value ?? "";
+}
+
+function scopedItems(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType) {
+  const typed = mediaType ? items.filter((item) => item.media_type === mediaType) : items;
+  if (destination === "backup") return typed;
+  if (destination === "letterboxd-watchlist") {
+    return typed.filter((item) => item.media_type === "movie" && item.collection_status === "watchlist");
+  }
+  return typed.filter((item) => item.collection_status !== "watchlist");
 }
 
 function compact(value: string) {
