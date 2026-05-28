@@ -29,6 +29,14 @@ const DEFAULT_API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://localhost:8000");
 
+const exportTargets: { destination: Destination; label: string; mediaType?: MediaType; primary?: boolean }[] = [
+  { destination: "letterboxd", label: "Letterboxd CSV", mediaType: "movie" },
+  { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie" },
+  { destination: "goodreads", label: "Goodreads CSV", mediaType: "book" },
+  { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music" },
+  { destination: "archive", label: "Backup ZIP", primary: true },
+];
+
 type StoredSettings = {
   apiBase: string;
   userId?: string;
@@ -198,9 +206,18 @@ export default function App() {
         <Panel title="Migrate">
           <View style={styles.row}>
             <ActionButton label={`Match ${mediaType}`} onPress={runMatching} disabled={busy} />
-            <ActionButton label="Letterboxd CSV" onPress={() => exportItems("letterboxd", "movie")} disabled={busy} />
           </View>
-          <ActionButton label="Portable archive ZIP" onPress={() => exportItems("archive")} primary disabled={busy} />
+          <View style={styles.exportGrid}>
+            {exportTargets.map((target) => (
+              <ActionButton
+                key={target.destination}
+                label={target.label}
+                onPress={() => exportItems(target.destination, target.mediaType)}
+                primary={target.primary}
+                disabled={busy}
+              />
+            ))}
+          </View>
           {exportJob ? <ActionButton label="Download last export" onPress={downloadExport} disabled={busy} /> : null}
         </Panel>
 
@@ -342,6 +359,7 @@ const styles = StyleSheet.create({
   caption: { color: "#647773", fontSize: 12, lineHeight: 18 },
   identity: { color: "#087f78", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 12 },
   row: { flexDirection: "row", gap: 8 },
+  exportGrid: { gap: 8 },
   button: {
     alignItems: "center",
     borderColor: "#cddad7",

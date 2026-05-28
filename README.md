@@ -11,7 +11,7 @@ Phase 1 is implemented as a production-ready foundation:
 
 - Douban movie backup ingestion from browser-extension payloads or HTML exports.
 - Canonical media schema for movies, books, and music.
-- Letterboxd CSV export and archive bundle generation.
+- Letterboxd, Filmarks, Goodreads, RateYourMusic, and backup archive exports.
 - Matching engine foundations with TMDb, Open Library, and MusicBrainz providers.
 - Manual review API and UI for uncertain matches.
 - FastAPI backend, PostgreSQL, Redis, Dramatiq worker, and Next.js frontend.
@@ -80,7 +80,7 @@ npm run android
 
 Use `npm run ios` on macOS or open the Expo development build on an iOS device.
 The app can import verified demo records or pasted Douban HTML and then call
-the same matching and export APIs as the web client.
+the same matching, destination export, and backup APIs as the web client.
 
 The Vercel CLI is not installed in this environment. Installing it with
 `npm i -g vercel` will unlock workflows such as `vercel env pull`,

@@ -6,7 +6,8 @@ FastAPI backend and supports:
 - Demo import with verified public Douban subject IDs.
 - Pasted Douban HTML import for movie, book, or music records.
 - Canonical library viewing.
-- Matching requests and Letterboxd/archive exports.
+- Matching requests.
+- Letterboxd, Filmarks, Goodreads, RateYourMusic, and backup archive exports.
 
 ## Run Locally
 

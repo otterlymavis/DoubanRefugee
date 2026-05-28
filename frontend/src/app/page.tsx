@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CanonicalMedia, createExport, downloadUrl, importBrowserExtension, runMatching } from "@/lib/api";
+import { CanonicalMedia, Destination, MediaType, createExport, downloadUrl, importBrowserExtension, runMatching } from "@/lib/api";
 
 const sampleItems: CanonicalMedia[] = [
   {
@@ -32,20 +32,57 @@ const sampleItems: CanonicalMedia[] = [
     tags: ["manual-review"],
     external_ids: {},
   },
+  {
+    media_type: "book",
+    source_platform: "douban",
+    source_id: "2567698",
+    titles: { zh: "三体", en: "The Three-Body Problem" },
+    year: 2008,
+    rating: { value: 5, scale: 5 },
+    review: "A preserved book entry for Goodreads migration.",
+    consumed_date: "2024-03-08",
+    tags: ["book", "sci-fi"],
+    external_ids: { isbn: "9787536692930", author: "Liu Cixin" },
+  },
+  {
+    media_type: "music",
+    source_platform: "douban",
+    source_id: "1394653",
+    titles: { en: "OK Computer" },
+    year: 1997,
+    rating: { value: 5, scale: 5 },
+    review: "A preserved music entry for RateYourMusic migration.",
+    consumed_date: "2024-03-09",
+    tags: ["music", "rock"],
+    external_ids: { artist: "Radiohead", barcode: "0724385522925" },
+  },
 ];
 
 const phases = [
-  ["Phase 1", "Douban movie backup and Letterboxd CSV", "active"],
+  ["Phase 1", "Douban backup and destination CSVs", "active"],
   ["Phase 2", "Matching engine and manual review", "ready"],
-  ["Phase 3", "Goodreads and music backup", "planned"],
-  ["Phase 4", "Filmarks, RateYourMusic, sync automation", "planned"],
+  ["Phase 3", "Goodreads, Filmarks, and RateYourMusic", "ready"],
+  ["Phase 4", "Sync automation", "planned"],
+];
+
+const exportTargets: {
+  destination: Destination;
+  label: string;
+  mediaType?: MediaType;
+  variant?: "secondary" | "accent";
+}[] = [
+  { destination: "letterboxd", label: "Letterboxd CSV", mediaType: "movie", variant: "accent" },
+  { destination: "filmarks", label: "Filmarks CSV", mediaType: "movie", variant: "secondary" },
+  { destination: "goodreads", label: "Goodreads CSV", mediaType: "book", variant: "secondary" },
+  { destination: "rateyourmusic", label: "RateYourMusic CSV", mediaType: "music", variant: "secondary" },
+  { destination: "archive", label: "Backup ZIP", variant: "accent" },
 ];
 
 export default function Home() {
   const [userId, setUserId] = useState<string>();
   const [status, setStatus] = useState("Ready to ingest a local browser-extension payload.");
   const [progress, setProgress] = useState(18);
-  const [exportJobId, setExportJobId] = useState<string>();
+  const [exportJob, setExportJob] = useState<{ id: string; label: string }>();
 
   const matched = useMemo(() => (progress >= 70 ? 1 : 0), [progress]);
 
@@ -65,13 +102,13 @@ export default function Home() {
     setStatus(`Generated ${response.candidate_count} candidates. Low-confidence items are queued for review.`);
   }
 
-  async function handleExport() {
+  async function handleExport(target: (typeof exportTargets)[number]) {
     if (!userId) return;
-    setStatus("Rendering Letterboxd CSV export...");
-    const response = await createExport(userId, "letterboxd", "movie");
-    setExportJobId(response.id);
+    setStatus(`Rendering ${target.label}...`);
+    const response = await createExport(userId, target.destination, target.mediaType);
+    setExportJob({ id: response.id, label: target.label });
     setProgress(100);
-    setStatus(`Export ${response.id.slice(0, 8)} is ${response.status}.`);
+    setStatus(`${target.label} export ${response.id.slice(0, 8)} is ${response.status}.`);
   }
 
   return (
@@ -92,7 +129,7 @@ export default function Home() {
           <div className="grid min-w-72 grid-cols-3 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
             <Metric label="items" value={sampleItems.length.toString()} />
             <Metric label="matched" value={matched.toString()} />
-            <Metric label="exports" value={exportJobId ? "1" : "0"} />
+            <Metric label="exports" value={exportJob ? "1" : "0"} />
           </div>
         </header>
 
@@ -123,7 +160,7 @@ export default function Home() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2">
                   <Button onClick={handleImport} variant="default">
                     <Upload className="h-4 w-4" />
                     Import Douban
@@ -132,14 +169,18 @@ export default function Home() {
                     <WandSparkles className="h-4 w-4" />
                     Match Metadata
                   </Button>
-                  <Button onClick={handleExport} disabled={!userId} variant="accent">
-                    <Download className="h-4 w-4" />
-                    Letterboxd CSV
-                  </Button>
                 </div>
-                {exportJobId ? (
-                  <a className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" href={downloadUrl(exportJobId)}>
-                    Download generated export
+                <div className="mt-3 grid gap-3 md:grid-cols-5">
+                  {exportTargets.map((target) => (
+                    <Button key={target.destination} onClick={() => handleExport(target)} disabled={!userId} variant={target.variant ?? "secondary"} size="sm">
+                      <Download className="h-4 w-4" />
+                      {target.label}
+                    </Button>
+                  ))}
+                </div>
+                {exportJob ? (
+                  <a className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" href={downloadUrl(exportJob.id)}>
+                    Download {exportJob.label}
                   </a>
                 ) : null}
               </CardContent>

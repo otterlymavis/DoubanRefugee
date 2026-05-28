@@ -1,29 +1,28 @@
 # Migration Workflows
 
-## Phase 1: Douban Movies to Letterboxd
+## Import and Backup
 
-1. User exports Douban movie history through the browser extension payload.
+1. User imports Douban movie, book, or music history through the browser
+   extension payload, mobile demo payload, pasted HTML, or uploaded HTML.
 2. Backend stores a `BackupSnapshot` and normalized `MediaItem` rows.
-3. User runs matching. TMDb candidates are ranked by exact title/year,
-   alternate titles, fuzzy score, and metadata boosts.
-4. Low-confidence rows appear in the review queue.
-5. `LetterboxdAdapter` renders a destination-compatible CSV.
+3. `ArchiveAdapter` renders a backup ZIP containing `canonical.json` plus one
+   Markdown file per item.
 
-## Phase 2: Manual Review
+## Destination Exports
 
-1. User inspects candidate matches.
-2. User selects the correct provider record.
-3. Selection writes a `ManualMapping`.
-4. Later exports prefer the persisted correction.
+All destination exports read from the canonical media model:
 
-## Phase 3: Books and Music
+- Movies to Letterboxd through `LetterboxdAdapter`.
+- Movies to Filmarks through `FilmarksAdapter`.
+- Books to Goodreads through `GoodreadsAdapter`.
+- Music to RateYourMusic through `RateYourMusicAdapter`.
+- All media to portable backup ZIP through `ArchiveAdapter`.
 
-Books use Open Library candidates and `GoodreadsAdapter`.
-Music uses MusicBrainz candidates and `RateYourMusicAdapter`.
+## Manual Review
 
-## Phase 4: Additional Destinations
-
-Filmarks and RateYourMusic remain destination adapters. The canonical schema,
-matching engine, ingestion layer, and review queue do not need destination-aware
-branches.
-
+1. User runs matching for the imported media type.
+2. Provider candidates are ranked by exact title/year, alternate titles, fuzzy
+   score, and metadata boosts.
+3. Low-confidence rows appear in the review queue.
+4. User selects the correct provider record.
+5. Selection writes a `ManualMapping` so later exports can reuse the correction.

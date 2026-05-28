@@ -59,7 +59,8 @@ backend URL. For physical iOS devices, use an HTTPS tunnel URL unless an
 additional App Transport Security exception is configured.
 
 The app imports built-in real-record fixtures or pasted Douban HTML, displays
-canonical media, triggers matching, and downloads CSV/archive exports.
+canonical media, triggers matching, and downloads Letterboxd, Filmarks,
+Goodreads, RateYourMusic, or backup archive exports.
 
 ## Verification Commands
 
