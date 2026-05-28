@@ -2,8 +2,8 @@
 if (window.__doubanRefugeeContentScriptLoaded) return;
 window.__doubanRefugeeContentScriptLoaded = true;
 
-const MAX_SCRAPE_PAGES = 50;
-const PAGE_DELAY_MS = 300;
+const MAX_SCRAPE_PAGES = 200;
+const PAGE_DELAY_MS = 500;
 
 function compact(value) {
   return (value || "").replace(/\s+/g, " ").trim();

@@ -38,7 +38,7 @@ export default function Home() {
   const [jsonText, setJsonText] = useState("");
   const [html, setHtml] = useState("");
   const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
-  const [status, setStatus] = useState("Scrape your Douban history with the extension, import JSON here, then export transfer files.");
+  const [status, setStatus] = useState("Scrape your whole Douban history with the extension, import JSON here, then export transfer files.");
 
   const counts = useMemo(
     () => ({
@@ -132,7 +132,7 @@ export default function Home() {
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-6xl">DoubanRefugee</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Scrape your logged-in Douban movie, book, and music history, then turn it into files for Letterboxd, Filmarks, Goodreads,
+              Scrape your whole logged-in Douban movie, book, and music history, then turn it into files for Letterboxd, Filmarks, Goodreads,
               RateYourMusic, or a full backup. Your data stays on this device unless you export it.
             </p>
           </div>
@@ -149,7 +149,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle>Import</CardTitle>
-                <CardDescription>Import the JSON produced by the extension's paged Douban history scraper.</CardDescription>
+                <CardDescription>Import the JSON produced by the extension's whole-history Douban scraper.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -228,7 +228,7 @@ export default function Home() {
               <CardContent className="overflow-x-auto">
                 {items.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No data imported yet. Use the extension to scrape your Douban collection/history pages, then import the JSON here.
+                    No data imported yet. Use the extension to scrape your whole Douban collection/history, then import the JSON here.
                   </div>
                 ) : (
                   <table className="w-full min-w-[720px] text-left text-sm">

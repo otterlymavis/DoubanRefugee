@@ -23,13 +23,11 @@ Douban HTML. Export each destination file from the browser.
 7. Click the DoubanRefugee extension icon.
 8. Leave "Local web app address" as `http://localhost:3000` unless you serve the
    frontend somewhere else.
-9. Set "Pages to scrape" to a small number for testing.
-10. Click "Scrape history pages".
+9. Set "History page safety limit" to a small number for testing, or leave it
+   high for a full history scrape.
+10. Click "Scrape whole history".
 11. Download or copy JSON.
 12. Import that JSON in the web app.
-
-For a single visible page, use "Extract current page" instead of the paged
-scraper.
 
 ## Mobile App
 

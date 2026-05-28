@@ -1,6 +1,6 @@
 const DEFAULTS = {
   mediaType: "movie",
-  maxPages: "10",
+  maxPages: "200",
   webAppUrl: "http://localhost:3000"
 };
 
@@ -10,7 +10,6 @@ const webAppUrlInput = document.querySelector("#webAppUrl");
 const maxPagesInput = document.querySelector("#maxPages");
 const mediaTypeInput = document.querySelector("#mediaType");
 const scrapeButton = document.querySelector("#scrapeButton");
-const extractButton = document.querySelector("#extractButton");
 const copyButton = document.querySelector("#copyButton");
 const downloadButton = document.querySelector("#downloadButton");
 const openButton = document.querySelector("#openButton");
@@ -61,40 +60,7 @@ async function saveSettings() {
 function normalizeMaxPages(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULTS.maxPages;
-  return String(Math.max(1, Math.min(50, Math.floor(parsed))));
-}
-
-async function extractPage() {
-  await saveSettings();
-  const tab = await getActiveTab();
-
-  if (!tab.url || !tab.url.includes("douban.com")) {
-    throw new Error("Open a douban.com subject, collection, or list page first.");
-  }
-
-  const response = await requestExtraction(tab.id, {
-    type: "DOUBAN_REFUGEE_EXTRACT",
-    mediaType: mediaTypeInput.value
-  });
-
-  if (!response?.ok) {
-    throw new Error(response?.error || "The content extractor did not respond.");
-  }
-
-  extractedPayload = {
-    exported_at: new Date().toISOString(),
-    source_profile: {
-      client: "douban-refugee-extension",
-      page: response.page
-    },
-    items: response.items || []
-  };
-
-  const hasItems = extractedPayload.items.length > 0;
-  copyButton.disabled = !hasItems;
-  downloadButton.disabled = !hasItems;
-  setStatus(`Extracted ${extractedPayload.items.length} item(s). Download JSON, then import it in the web app.`);
-  showPreview({ page: response.page, items: extractedPayload.items.slice(0, 5) });
+  return String(Math.max(1, Math.min(200, Math.floor(parsed))));
 }
 
 async function scrapeHistory() {
@@ -132,8 +98,8 @@ async function scrapeHistory() {
   const hasItems = extractedPayload.items.length > 0;
   copyButton.disabled = !hasItems;
   downloadButton.disabled = !hasItems;
-  const limitNote = response.reached_max_pages ? " Increase the page limit and scrape again if your history is longer." : "";
-  setStatus(`Scraped ${extractedPayload.items.length} item(s) from ${response.pages?.length || 0} page(s).${limitNote} Download JSON, then import it in the web app.`);
+  const limitNote = response.reached_max_pages ? " The safety limit was reached; increase it and scrape again if your history is longer." : "";
+  setStatus(`Scraped ${extractedPayload.items.length} history item(s) from ${response.pages?.length || 0} Douban page(s).${limitNote} Download JSON, then import it in the web app for Letterboxd/export files.`);
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -173,27 +139,13 @@ function downloadJson() {
 
 scrapeButton.addEventListener("click", async () => {
   scrapeButton.disabled = true;
-  extractButton.disabled = true;
-  setStatus("Scraping paginated Douban history from this tab...");
+  setStatus("Scraping whole paginated Douban history from this tab...");
   try {
     await scrapeHistory();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error));
   } finally {
     scrapeButton.disabled = false;
-    extractButton.disabled = false;
-  }
-});
-
-extractButton.addEventListener("click", async () => {
-  extractButton.disabled = true;
-  setStatus("Extracting current Douban page...");
-  try {
-    await extractPage();
-  } catch (error) {
-    setStatus(error instanceof Error ? error.message : String(error));
-  } finally {
-    extractButton.disabled = false;
   }
 });
 

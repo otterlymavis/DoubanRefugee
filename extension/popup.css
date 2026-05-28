@@ -88,7 +88,7 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
 }
 
-#scrapeButton {
+.actions > button:first-child {
   grid-column: 1 / -1;
 }
 

@@ -48,8 +48,9 @@ and select the extension/ folder.
 ```
 
 Open your own Douban collection/history page, such as a movie `collect` page,
-click the extension icon, choose how many paginated pages to scrape, download
-JSON, then import that JSON in the web app. Leave the extension's local web app
+click the extension icon, choose "Scrape whole history", download JSON, then
+import that JSON in the web app. The scraper follows Douban pagination until the
+history ends or the safety limit is reached. Leave the extension's local web app
 address as `http://localhost:3000` unless you serve the static frontend
 somewhere else.
 

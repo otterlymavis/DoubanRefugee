@@ -16,9 +16,7 @@ and creates JSON that the web app can convert into destination transfer files.
 1. Sign in to Douban and open your own collection/history page.
 2. Click the DoubanRefugee extension icon.
 3. Select the media type.
-4. Set "Pages to scrape".
-5. Click "Scrape history pages".
+4. Set "History page safety limit" high enough for the whole history.
+5. Click "Scrape whole history".
 6. Click "Download JSON" or "Copy JSON".
 7. Import that JSON in the local web app and export a transfer CSV.
-
-Use "Extract current page" when you only want the visible page.

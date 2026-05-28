@@ -11,7 +11,7 @@
       <header>
         <p class="eyebrow">History transfer</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Scrape your logged-in Douban movie, book, or music history and turn it into transfer JSON. No backend, no API base URL.</p>
+        <p class="hint">Scrape your whole logged-in Douban movie, book, or music history and turn it into transfer JSON for sites like Letterboxd.</p>
       </header>
 
       <label>
@@ -21,9 +21,9 @@
       </label>
 
       <label>
-        Pages to scrape
-        <input id="maxPages" type="number" min="1" max="50" value="10">
-        <span class="field-note">Start on your own Douban collection/history page. The scraper follows pagination up to this limit.</span>
+        History page safety limit
+        <input id="maxPages" type="number" min="1" max="200" value="200">
+        <span class="field-note">Start on your own Douban collection/history page. The scraper follows every next page until the history ends or this safety limit is reached.</span>
       </label>
 
       <label>
@@ -36,15 +36,14 @@
       </label>
 
       <div class="actions">
-        <button id="scrapeButton" type="button">Scrape history pages</button>
-        <button id="extractButton" type="button">Extract current page</button>
+        <button id="scrapeButton" type="button">Scrape whole history</button>
         <button id="copyButton" type="button" disabled>Copy JSON</button>
         <button id="downloadButton" type="button" disabled>Download JSON</button>
         <button id="openButton" type="button">Open local app</button>
       </div>
 
       <section class="status">
-        <div id="statusText">Open your Douban collection/history page, then scrape. No API URL needed.</div>
+        <div id="statusText">Open your Douban movie collect/history page, then scrape whole history. No API URL needed.</div>
         <pre id="preview" aria-live="polite"></pre>
       </section>
 

@@ -19,8 +19,9 @@ flowchart LR
 
 ## Components
 
-- **Extension**: extracts the current Douban page or follows pagination from the
-  current collection/history page, then downloads or copies JSON.
+- **Extension**: starts from a user's own Douban collection/history page, follows
+  pagination until the history ends or the safety limit is reached, then
+  downloads or copies JSON.
 - **Web app**: imports JSON or pasted HTML, stores the library in
   `localStorage`, and downloads export files.
 - **Mobile app**: imports JSON or demo records, stores the library on device,
