@@ -72,6 +72,21 @@ function parseRating(root) {
   return numeric ? { value: Number(numeric[1]), scale: 5 } : undefined;
 }
 
+function infoLines(root) {
+  const info = root.querySelector?.("#info") || root;
+  return (info.textContent || "").split(/\n/).map(compact).filter(Boolean);
+}
+
+function infoValue(root, label) {
+  const lines = infoLines(root);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line === `${label}:` || line === `${label}：`) return lines[index + 1] || "";
+    if (line.startsWith(`${label}:`) || line.startsWith(`${label}：`)) return compact(line.slice(label.length + 1));
+  }
+  return "";
+}
+
 function parseExternalIds(root) {
   const text = compact(textContentFor(root));
   const imdb = text.match(/\btt\d{7,9}\b/i);
@@ -79,6 +94,12 @@ function parseExternalIds(root) {
   const externalIds = {};
   if (imdb) externalIds.imdb = imdb[0];
   if (isbn) externalIds.isbn = isbn[0].replace(/[-\s]/g, "");
+  const author = infoValue(root, "作者");
+  const artist = infoValue(root, "表演者");
+  const barcode = infoValue(root, "条形码");
+  if (author) externalIds.author = author;
+  if (artist) externalIds.artist = artist;
+  if (barcode) externalIds.barcode = barcode;
   return externalIds;
 }
 
@@ -87,25 +108,26 @@ function itemFromRoot(root, anchor, mediaType, pageUrl = window.location.href) {
   const sourceId = subjectIdFromUrl(href, pageUrl);
   if (!sourceId) return undefined;
 
-  const titleNode =
-    root.querySelector(".title a") ||
-    root.querySelector(".title") ||
-    root.querySelector("h1 span[property='v:itemreviewed']") ||
-    root.querySelector("h1 span") ||
-    root.querySelector("h1") ||
-    anchor;
+  const titleNode = anchor
+    ? root.querySelector(".title a") || root.querySelector(".title") || anchor
+    : root.querySelector("h1 span[property='v:itemreviewed']") ||
+      root.querySelector("h1 span") ||
+      root.querySelector("h1") ||
+      root.querySelector("meta[property='og:title']") ||
+      root.querySelector("#mainpic img");
 
-  const rawTitle = compact(titleNode ? titleNode.textContent : anchor?.textContent);
+  const rawTitle = compact(titleNode ? titleNode.getAttribute?.("content") || titleNode.getAttribute?.("alt") || titleNode.textContent : anchor?.textContent);
   const title = rawTitle.replace(/\s*\((19|20)\d{2}\)\s*$/, "");
   if (!title) return undefined;
 
-  const rootText = textContentFor(root);
+  const metadataRoot = anchor ? root : root.querySelector("#info") || root.querySelector(".subjectwrap") || root;
+  const rootText = textContentFor(metadataRoot);
   const year = parseYear(rootText);
-  const rating = parseRating(root);
+  const rating = anchor ? parseRating(root) : undefined;
   const consumedDate = parseConsumedDate(rootText);
   const reviewNode = root.querySelector(".comment, .short, .review-short, blockquote");
   const review = compact(reviewNode?.textContent);
-  const externalIds = parseExternalIds(root);
+  const externalIds = parseExternalIds(metadataRoot);
 
   const item = {
     media_type: mediaType || detectMediaType(href),
@@ -151,6 +173,11 @@ function extractSubjectPageFromDocument(documentLike, mediaType, pageUrl = windo
 }
 
 function extractDoubanItems(mediaType, documentLike = document, pageUrl = window.location.href) {
+  if (subjectIdFromUrl(pageUrl)) {
+    const subjectItems = extractSubjectPageFromDocument(documentLike, mediaType, pageUrl);
+    if (subjectItems.length > 0) return subjectItems;
+  }
+
   const items = extractListItemsFromDocument(documentLike, mediaType, pageUrl);
   return items.length > 0 ? items : extractSubjectPageFromDocument(documentLike, mediaType, pageUrl);
 }
