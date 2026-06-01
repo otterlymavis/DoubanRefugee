@@ -1,120 +1,44 @@
-# DoubanRefugee Browser Extension
+# DoubanRefugee Extension
 
-A Chrome/Edge/Brave Manifest V3 extension that scrapes your Douban movie, book,
-and music history and syncs it to the DoubanRefugee web app for migration to
-Letterboxd, Goodreads, RateYourMusic, and more.
+Manifest V3 helper for local-only transfer. It scrapes Douban movie, book, and
+music user pages, reads completed items from `/collect` and wanted items from
+`/wish`, follows pagination up to a user-selected limit, and creates JSON that
+the web app can convert into destination transfer files.
 
-## Supported Pages
+It can also scrape Douban broadcast/status pages from `/statuses` into JSON for
+Markdown backup in the web app.
 
-The extension activates on Douban interest list pages:
+The extension uses the user's active browser session. It does not ask for or
+store passwords, and it does not log into destination websites. Destination
+transfer still happens by downloading files and uploading/importing them while
+logged into each destination site.
 
-| URL pattern | What it scrapes |
-|---|---|
-| `www.douban.com/people/{user}/collect` | All watched/read/listened items |
-| `www.douban.com/people/{user}/wish` | Wishlist |
-| `www.douban.com/people/{user}/do` | Currently consuming |
-| `movie.douban.com/people/{user}/collect` | Movie-specific pages |
-| `book.douban.com/people/{user}/collect` | Book-specific pages |
-| `music.douban.com/people/{user}/collect` | Music-specific pages |
+## Load It
 
-## Quick Start
+1. Open Chrome or Edge and go to `chrome://extensions`.
+2. Enable Developer Mode.
+3. Choose "Load unpacked".
+4. Select this folder: `extension`.
 
-### 1. Generate icons (one-time)
+## Use It
 
-Requires Python 3.8+ (stdlib only — no pip installs needed):
+1. Sign in to Douban and open a Douban user page, such as
+   `https://movie.douban.com/people/<id>/collect`,
+   `https://book.douban.com/people/<id>/collect`, or
+   `https://music.douban.com/people/<id>/collect`.
+2. Click the DoubanRefugee extension icon.
+3. Select the media type.
+4. Set "History page safety limit" high enough for the whole history.
+5. Click "Scrape whole history".
+6. Click "Download JSON" or "Copy JSON".
+7. Import that JSON in the local web app and export Letterboxd watched/watchlist
+   CSV files, Goodreads, RateYourMusic, Filmarks, or backup JSON.
 
-```bash
-cd extension
-python scripts/generate-icons.py
-```
+## Status Backup
 
-This creates `icons/icon16.png`, `icons/icon48.png`, `icons/icon128.png`.
-
-### 2. Load in Chrome / Edge / Brave
-
-1. Open `chrome://extensions` (or `edge://extensions`)
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Select the `extension/` folder (the one containing `manifest.json`)
-
-The DoubanRefugee icon will appear in the toolbar.
-
-### 3. Configure the API URL
-
-Click the extension icon → **Settings** → set the API URL to wherever your
-DoubanRefugee backend is running (default: `http://localhost:8000`).
-
-### 4. Scrape your Douban history
-
-1. Sign in to Douban in the same browser profile.
-2. Navigate to your interest list, e.g.:
-   `https://www.douban.com/people/YOUR_USERNAME/collect?type=movie`
-3. Click the DoubanRefugee icon → **Scrape All Pages**.
-4. The extension will step through every page automatically (1 s delay between
-   pages to be polite to Douban's servers).
-5. When finished, click **Sync to DoubanRefugee** to push the data to the API.
-
-Your **User ID** is assigned on first sync and shown in the popup. Save it — you
-will need it in the web app (Library → Exports → Review).
-
-## Architecture
-
-```
-extension/
-├── manifest.json              # Manifest V3 config
-├── background/
-│   └── service-worker.js      # State machine, API calls, pagination
-├── content/
-│   └── content.js             # Injected into Douban pages; scrapes DOM
-├── popup/
-│   ├── popup.html             # Extension popup UI
-│   ├── popup.js               # Popup logic
-│   └── popup.css              # Popup styles
-├── icons/                     # PNG icons (generate with scripts/generate-icons.py)
-└── scripts/
-    └── generate-icons.py      # Icon generator (pure stdlib Python)
-```
-
-### Data flow
-
-```
-Douban page (content.js)
-       │  DOM scraping
-       ▼
-Background service worker
-       │  chrome.storage.local (collectedItems[])
-       ▼
-DoubanRefugee API  POST /api/v1/imports/douban/browser-extension
-       │
-       ▼
-Canonical MediaItem records → Matching → Export (Letterboxd CSV, etc.)
-```
-
-## Extracted fields
-
-For each item the content script extracts:
-
-| Field | Source |
-|---|---|
-| `source_id` | Douban subject ID from URL (`/subject/1234567/`) |
-| `titles.zh` | Chinese title text |
-| `titles.original` | Alt text from cover image |
-| `consumed_date` | Date shown next to the item |
-| `rating` | Star class (`rating5-t` → 5/5, etc.) |
-| `review` | Comment text |
-| `tags` | User-defined tags |
-| `media_type` | Inferred from hostname/URL param |
-| `interest_type` | `collect` / `wish` / `do` |
-
-## Privacy
-
-- The extension only reads Douban pages you navigate to yourself.
-- No Douban credentials are stored.
-- Data is only sent to the API URL you configure (default: localhost).
-- Nothing is sent to any third-party server.
-
-## Firefox support
-
-Firefox supports Manifest V3 from version 109+.  The extension should work
-without modification.  Load it via `about:debugging` → **This Firefox** →
-**Load Temporary Add-on** → select `manifest.json`.
+1. Open `https://www.douban.com/people/<id>/statuses`.
+2. In the Status backup section, set the start and end page.
+3. Click "Scrape statuses". You can cancel after the current page finishes.
+4. Download or copy the status JSON.
+5. Import it in the web app's Status Backup panel, then export Markdown or a
+   status backup JSON.

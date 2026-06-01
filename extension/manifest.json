@@ -1,53 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "DoubanRefugee",
-  "short_name": "DoubanRefugee",
-  "version": "1.0.0",
-  "description": "Back up your Douban movie, book, and music history for migration to Letterboxd, Goodreads, RateYourMusic, and more.",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting",
-    "tabs",
-    "alarms"
-  ],
-  "host_permissions": [
-    "https://www.douban.com/*",
-    "https://movie.douban.com/*",
-    "https://book.douban.com/*",
-    "https://music.douban.com/*"
-  ],
-  "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
+  "name": "DoubanRefugee Transfer Extractor",
+  "version": "0.1.0",
+  "description": "Scrape your own Douban history into local transfer files.",
+  "permissions": ["activeTab", "clipboardWrite", "scripting", "storage", "tabs"],
+  "host_permissions": ["https://*.douban.com/*"],
+  "action": {
+    "default_title": "DoubanRefugee",
+    "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://www.douban.com/people/*/collect*",
-        "https://www.douban.com/people/*/wish*",
-        "https://www.douban.com/people/*/do*",
-        "https://movie.douban.com/people/*/collect*",
-        "https://movie.douban.com/people/*/wish*",
-        "https://book.douban.com/people/*/collect*",
-        "https://music.douban.com/people/*/collect*"
-      ],
-      "js": ["content/content.js"],
+      "matches": ["https://*.douban.com/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ],
-  "action": {
-    "default_popup": "popup/popup.html",
-    "default_title": "DoubanRefugee — Douban History Backup",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  }
+  ]
 }

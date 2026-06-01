@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type React from "react";
-import { Nav } from "@/components/nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DoubanRefugee",
-  description: "Privacy-first Douban backup and cultural history migration.",
+  description: "Scrape your own Douban history and export transfer files.",
 };
 
 export default function RootLayout({
@@ -27,10 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="font-sans antialiased">
-        <div className="mx-auto flex min-h-screen max-w-7xl gap-8 px-5 py-6 pb-20 lg:px-8 lg:pb-6">
-          <Nav />
-          <main className="min-w-0 flex-1">{children}</main>
-        </div>
+        {children}
       </body>
     </html>
   );

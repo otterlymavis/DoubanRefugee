@@ -1,104 +1,120 @@
 # DoubanRefugee
 
-DoubanRefugee is a privacy-first cultural history backup and migration platform.
-exports destination-compatible files for Letterboxd, Filmarks, Goodreads, and
-RateYourMusic. Crucially, it supports robust local backups and seamless syncing
-with Notion for personal database management.
+DoubanRefugee is a local-only migration tool for scraping a Douban user's movie,
+book, or music history, then converting completed and wanted items into transfer
+files for Letterboxd and other tracking sites.
 
-## MVP Scope
+No backend. No database. No account connection layer. No hosting bill.
 
-Phase 1 is implemented as a production-ready foundation:
+## What It Does
 
-- Douban movie backup ingestion from browser-extension payloads or HTML exports.
-- Canonical media schema for movies, books, and music.
-- Export to Letterboxd CSV, robust local backups (JSON/CSV archives), and Notion syncing.
-- Matching engine foundations with TMDb, Open Library, and MusicBrainz providers.
-- Manual review API and UI for uncertain matches.
-- FastAPI backend, PostgreSQL, Redis, Dramatiq worker, and Next.js frontend.
+- Scrapes Douban movie, book, and music user pages, using `/collect` for
+  completed items and `/wish` for wanted/watchlist entries.
+- Scrapes Douban personal broadcast/status pages from `/statuses`, including
+  text, images, attached cards, topics, reposted content, visible comments, and
+  interaction counts when Douban exposes them.
+- Preserves ratings, marked dates, tags, short reviews/comments, source links,
+  poster URLs, release dates, creators, and countries when Douban exposes them
+  on the user history page.
+- Imports scraped Douban JSON or pasted Douban HTML in the web app.
+- Stores the working library in browser or mobile local storage.
+- Exports separate Letterboxd watched-history and Letterboxd watchlist CSV
+  files, plus transfer CSV files for Filmarks, Goodreads, and RateYourMusic.
+- Exports a full `douban-refugee-backup.json` file that can be re-imported.
+- Exports Douban statuses as Markdown or `douban-status-backup.json`.
+- Exports Notion-ready CSV files for media libraries and status databases, plus
+  status Markdown that Notion can import as pages.
+- Keeps the transfer step user-controlled: download the generated file, then
+  upload/import it on the destination site where that site supports imports.
+
+## Login and Transfer Model
+
+DoubanRefugee does not collect passwords and does not try to log into
+Letterboxd, Goodreads, RateYourMusic, Filmarks, Notion, or Douban on your
+behalf.
+
+1. Sign in to Douban normally in Chrome or Edge.
+2. Use the extension in that same browser session to scrape pages you can see.
+3. Import the downloaded JSON into the local web or mobile app.
+4. Download transfer files.
+5. Open each destination site yourself while logged in, then upload/import the
+   generated file where that site supports it.
+
+Current destination support:
+
+| Destination | Output | User action |
+| --- | --- | --- |
+| Letterboxd | Watched CSV and watchlist CSV | Upload through Letterboxd's logged-in import screens. |
+| Goodreads | Completed-books CSV | Import while logged into Goodreads. |
+| RateYourMusic | Music CSV helper | Use as staging data for import/manual entry workflows. |
+| Filmarks | Movie CSV helper | Use as a spreadsheet/manual transfer helper. |
+| Notion | Media/status CSV and status Markdown | Import CSV as a database or Markdown as pages. |
+| Backup | JSON and Markdown | Keep locally or re-import later. |
 
 ## Repository Layout
 
 ```text
-backend/       FastAPI app, SQLAlchemy models, services, workers, tests
-frontend/      Next.js App Router UI — Dashboard, Library, Review, Exports, Settings
-extension/     Manifest V3 browser extension — scrapes Douban pages and syncs to API
-docs/          Architecture, privacy, migration, and deployment notes
-docker-compose.yml
-.env.example
+frontend/      Static Next.js local web app
+extension/     Manifest V3 Douban JSON extractor
+mobile/        Expo React Native local app for Android and iOS
+docs/          Architecture, privacy, and local testing notes
 ```
-
-## Web App Pages
-
-| Route | Purpose |
-|---|---|
-| `/` | Dashboard — migration wizard, canonical ledger, phase tracker |
-| `/library` | Browse all imported media items; run matching |
-| `/review` | Manual review queue — pick the correct match for uncertain items |
-| `/exports` | Generate and download Letterboxd, Goodreads, RYM, local backups, and trigger Notion syncs |
-| `/settings` | Account info, API URL configuration, account deletion |
-
-## Browser Extension
-
-The extension scrapes your Douban interest list pages (watched movies, read
-books, listened albums and their ratings, dates, and reviews) and pushes the
-data directly to the DoubanRefugee API.
-
-**Install:**
-```bash
-# 1. Generate icons (Python stdlib only — no pip install needed)
-cd extension
-python scripts/generate-icons.py
-
-# 2. Load in Chrome
-#    chrome://extensions → Developer mode → Load unpacked → select extension/
-```
-
-See [extension/README.md](extension/README.md) for the full guide.
 
 ## Quick Start
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-Frontend: http://localhost:3000
-
-Backend API: http://localhost:8000/docs
-
-## Local Development
-
-Backend:
-
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-pytest
-uvicorn app.main:app --reload
-```
-
-Frontend:
+Web app:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-The Vercel CLI is not installed in this environment. Installing it with
-`npm i -g vercel` will unlock workflows such as `vercel env pull`,
-`vercel deploy`, and `vercel logs`.
+Open `http://localhost:3000`. This is the local web app address, not an API
+base URL. No backend URL is needed.
+
+Extension:
+
+```text
+Open chrome://extensions, enable Developer Mode, choose Load unpacked,
+and select the extension/ folder.
+```
+
+Open your Douban user page, such as `https://movie.douban.com/people/<id>/collect`
+or `https://book.douban.com/people/<id>/collect`, click the extension icon,
+choose the media type, choose "Scrape whole history", download JSON, then import
+that JSON in the web app. The extension automatically reads both `/collect` and
+`/wish` for the selected movie/book/music user and follows pagination until each
+section ends or the safety limit is reached. Leave the extension's local web app
+address as `http://localhost:3000` unless you serve the static frontend somewhere
+else.
+
+For broadcast/status backup, open
+`https://www.douban.com/people/<id>/statuses`, choose a page range in the
+extension's Status backup section, download the status JSON, then import it in
+the web app's Status Backup panel. The web app can export the imported statuses
+as Markdown, Notion status CSV, or backup JSON.
+
+For Notion, import `notion-douban-media.csv` or `notion-douban-statuses.csv` as
+a new Notion database. You can also import the status Markdown file as Notion
+pages if you prefer a narrative archive.
+
+For Letterboxd, upload `letterboxd.csv` through the normal account import flow
+and upload `letterboxd-watchlist.csv` through Letterboxd's watchlist import
+flow. Other destinations receive best-effort transfer CSVs that can be used
+where import tools or manual spreadsheet workflows are available.
+
+Mobile app:
+
+```bash
+cd mobile
+npm ci
+npm run android
+```
+
+Use `npm run ios` on macOS. The mobile app is also local-only: import JSON or
+demo records, then share CSV/backup output.
 
 See [Architecture](docs/ARCHITECTURE.md), [Schema](docs/SCHEMA.md),
 [Migration Workflows](docs/MIGRATION_WORKFLOWS.md), and
-[Privacy](docs/PRIVACY.md) for the system design.
-
-## Privacy Defaults
-
-- No Douban password storage.
-- Session cookies are encrypted before persistence.
-- Export jobs expire by policy.
-- Account deletion removes user-owned records and encrypted session data.
-- Browser-extension extraction is preferred over server-side scraping.
+[Privacy](docs/PRIVACY.md).

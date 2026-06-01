@@ -1,38 +1,46 @@
 # Architecture
 
-DoubanRefugee is built around a canonical media model. Ingestion, matching, and
-destination exports depend on that model instead of depending on each other.
+DoubanRefugee is local-first, backend-free, and export-first. The extension
+scrapes Douban movie, book, or music user mark-list pages, specifically
+`/collect` for completed items and `/wish` for wanted items. The canonical
+media record lives in the browser or mobile app, and export renderers turn that
+record into destination transfer files that the user uploads manually while
+logged into each destination site.
 
 ```mermaid
 flowchart LR
-  U["User"] --> UI["Next.js migration wizard"]
-  UI --> API["FastAPI API"]
-  API --> DB[("PostgreSQL")]
-  API --> R[("Redis broker")]
-  R --> W["Dramatiq workers"]
-  W --> M["Matching providers"]
-  W --> X["Export adapters"]
-  X --> S["ZIP/CSV/JSON/Markdown files"]
+  D["Douban movie/book/music /collect and /wish pages"] --> E["Browser extension scraper"]
+  E --> J["Import JSON"]
+  J --> W["Static web app"]
+  J --> M["Expo mobile app"]
+  W --> L["Browser localStorage"]
+  M --> S["Device local storage"]
+  L --> X["CSV / backup JSON"]
+  S --> X
+  X --> U["User uploads/imports while logged into destination site"]
 ```
 
-## Bounded Contexts
+## Components
 
-- **Ingestion**: Accepts browser-extension JSON, uploaded HTML, or optional
-  Playwright snapshots. Produces canonical media items and backup snapshots.
-- **Canonical library**: Stores normalized `MediaItem`, `Rating`, `Review`,
-  `BackupSnapshot`, `MatchCandidate`, and `ExportJob` records.
-- **Matching**: Uses layered exact, alternate-title, fuzzy, and metadata-assisted
-  ranking. Manual overrides are persisted separately from provider results.
-- **Exports**: Destination adapters transform canonical items into platform
-  CSVs or archival bundles.
-- **Privacy**: Sensitive session data is encrypted. Export artifacts can be
-  short-lived and removed by retention jobs.
+- **Extension**: starts from a Douban user page, fetches the selected media
+  type's `/collect` and `/wish` pages, follows pagination until each section
+  ends or the safety limit is reached, then downloads or copies JSON.
+- **Web app**: imports JSON or pasted HTML, stores the library in
+  `localStorage`, and downloads export files.
+- **Mobile app**: imports JSON or demo records, stores the library on device,
+  and shares export text through the OS share sheet.
+- **Canonical model**: one shared shape that includes Douban subject ID,
+  collection status, marked date, consumed date, user rating, tags, short
+  review/comment, source URL, poster URL, release date, creators, and countries
+  when Douban exposes them.
 
-## Anti-Fragile Defaults
+## Deliberate Omissions
 
-- Destination-specific logic lives in adapters.
-- Source-specific quirks live in importers.
-- Manual mappings improve later exports.
-- Jobs are idempotent and persisted.
-- Network providers are optional; lack of a provider degrades to review queue.
-
+- No server API.
+- No account system.
+- No password collection.
+- No backend login bridge for destination sites.
+- No PostgreSQL or Redis.
+- No background workers.
+- No hosted backups.
+- No paid metadata-provider keys.

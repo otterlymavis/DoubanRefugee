@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:exports": "tsx tests/local-export.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
@@ -28,7 +29,7 @@
     "eslint-config-next": "^16.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.22.3",
     "typescript": "^5.7.2"
   }
 }
-

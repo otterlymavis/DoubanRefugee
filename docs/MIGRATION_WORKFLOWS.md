@@ -1,34 +1,78 @@
 # Migration Workflows
 
-## Phase 1: Douban Movies to Letterboxd
+## Login Model
 
-1. User exports Douban movie history through the browser extension payload.
-2. Backend stores a `BackupSnapshot` and normalized `MediaItem` rows.
-3. User runs matching. TMDb candidates are ranked by exact title/year,
-   alternate titles, fuzzy score, and metadata boosts.
-4. Low-confidence rows appear in the review queue.
-5. `LetterboxdAdapter` renders a destination-compatible CSV.
+DoubanRefugee is export-first. It never asks for Douban, Letterboxd,
+Goodreads, RateYourMusic, Filmarks, or Notion credentials.
 
-## Phase 2: Manual Review
+- Scraping happens inside the user's already logged-in browser session.
+- Destination sites are handled by files the user uploads while logged in there.
+- The app should not promise direct account sync unless a future optional
+  browser helper is built for a specific site.
 
-1. User inspects candidate matches.
-2. User selects the correct provider record.
-3. Selection writes a `ManualMapping`.
-4. Later exports prefer the persisted correction.
+## Douban History to Web
 
-## Phase 3: Books and Music
+1. Sign in to Douban in Chrome or Edge.
+2. Open a Douban movie, book, or music user page, for example
+   `https://movie.douban.com/people/<id>/collect`,
+   `https://book.douban.com/people/<id>/collect`, or
+   `https://music.douban.com/people/<id>/collect`.
+3. Use the extension's "Scrape whole history" action.
+4. Keep the safety limit high enough for the user's history. The extension reads
+   both `/collect` and `/wish` for the selected media type, follows Douban
+   pagination until there is no next page or the safety limit is reached, and
+   deduplicates subject IDs by status.
+5. Download or copy JSON.
+6. Import the JSON into the web app.
+7. Download Letterboxd watched CSV, Letterboxd watchlist CSV, Filmarks,
+   Goodreads, RateYourMusic, or backup JSON.
 
-Books use Open Library candidates and `GoodreadsAdapter`.
-Music uses MusicBrainz candidates and `RateYourMusicAdapter`.
+## Transfer Checklist
 
-## Phase 4: Additional Destinations
+1. Scrape Douban in the extension.
+2. Import JSON in the local app.
+3. Review counts and sample rows.
+4. Export the destination file.
+5. Open the destination site while logged in.
+6. Upload/import the file, or use it as a manual transfer spreadsheet.
 
-Filmarks and RateYourMusic remain destination adapters. The canonical schema,
-matching engine, ingestion layer, and review queue do not need destination-aware
-branches.
+## Destination Support
 
-## Phase 5: Notion Sync and Local Backups
+| Destination | Best current path |
+| --- | --- |
+| Letterboxd | Upload `letterboxd.csv` for watched films and `letterboxd-watchlist.csv` for wanted films. |
+| Goodreads | Upload/use `goodreads.csv` for completed books. |
+| RateYourMusic | Use `rateyourmusic.csv` as a music transfer helper. |
+| Filmarks | Use `filmarks.csv` as a movie transfer helper. |
+| Notion | Import `notion-douban-media.csv` or `notion-douban-statuses.csv` as databases. |
+| Backup | Keep JSON/Markdown locally for re-import or archive. |
 
-1. **Local Backups:** The canonical schema is exported to flat `JSON` and `CSV` bundles. These archives contain all metadata, tags, and reviews, allowing users to store a complete snapshot offline.
-2. **Notion Sync:** A dedicated `NotionSyncAdapter` connects to the user's Notion API. It periodically pushes new or modified media items directly into their specified Notion databases, preserving rich properties like ratings, tags, and cover images.
+## Letterboxd Transfer
 
+1. Scrape the Douban movie user pages with the extension.
+2. Import the JSON into the web app.
+3. Download `letterboxd.csv`.
+4. Download `letterboxd-watchlist.csv`.
+5. Upload `letterboxd.csv` through Letterboxd's account import flow.
+6. Upload `letterboxd-watchlist.csv` through Letterboxd's watchlist import flow.
+
+## Books and Music
+
+1. Choose `book` or `music` in the extension.
+2. Scrape the matching Douban user pages.
+3. Import the JSON into the web app.
+4. Export Goodreads CSV for completed books or RateYourMusic CSV for completed
+   music. Wanted items stay in the backup JSON.
+
+## Pasted HTML to Web
+
+1. Copy a Douban HTML export or saved page fragment.
+2. Paste it into the web app.
+3. Pick movie, book, or music as the media type.
+4. Import and export locally.
+
+## Mobile
+
+1. Paste extension JSON or backup JSON into the mobile app.
+2. Store the library locally on device.
+3. Share destination CSV or backup JSON output.

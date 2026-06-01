@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
+  --background: 84 18% 96%;
+  --foreground: 202 30% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --border: 0 0% 90%;
-  --input: 0 0% 90%;
-  --ring: 0 0% 9%;
-  --primary: 0 0% 9%;
-  --primary-foreground: 0 0% 98%;
-  --accent: 0 0% 96%;
-  --accent-foreground: 0 0% 9%;
-  --destructive: 0 84% 60%;
-  --radius: 0.25rem;
+  --card-foreground: 202 30% 11%;
+  --muted: 190 18% 92%;
+  --muted-foreground: 202 11% 39%;
+  --border: 196 16% 82%;
+  --input: 196 16% 82%;
+  --ring: 174 76% 27%;
+  --primary: 174 74% 25%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 355 72% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --radius: 0.5rem;
 }
 
 * {
@@ -25,13 +25,25 @@
 }
 
 body {
-  background-color: hsl(var(--background));
+  background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
 ::selection {
-  background: hsl(var(--foreground));
-  color: hsl(var(--background));
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
+.ledger-panel {
+  box-shadow: none;
+}
+
+.surface-grid {
+  background: hsl(var(--background));
+}
+
+.scrollbar-thin {
+  scrollbar-color: hsl(var(--border)) transparent;
+  scrollbar-width: thin;
+}
 
