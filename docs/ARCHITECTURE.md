@@ -1,10 +1,11 @@
 # Architecture
 
-DoubanRefugee is local-first and backend-free. The extension scrapes Douban
-movie, book, or music user mark-list pages, specifically `/collect` for
-completed items and `/wish` for wanted items. The canonical media record lives
-in the browser or mobile app, and export renderers turn that record into
-destination transfer files.
+DoubanRefugee is local-first, backend-free, and export-first. The extension
+scrapes Douban movie, book, or music user mark-list pages, specifically
+`/collect` for completed items and `/wish` for wanted items. The canonical
+media record lives in the browser or mobile app, and export renderers turn that
+record into destination transfer files that the user uploads manually while
+logged into each destination site.
 
 ```mermaid
 flowchart LR
@@ -16,6 +17,7 @@ flowchart LR
   M --> S["Device local storage"]
   L --> X["CSV / backup JSON"]
   S --> X
+  X --> U["User uploads/imports while logged into destination site"]
 ```
 
 ## Components
@@ -36,6 +38,8 @@ flowchart LR
 
 - No server API.
 - No account system.
+- No password collection.
+- No backend login bridge for destination sites.
 - No PostgreSQL or Redis.
 - No background workers.
 - No hosted backups.

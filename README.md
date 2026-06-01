@@ -4,7 +4,7 @@ DoubanRefugee is a local-only migration tool for scraping a Douban user's movie,
 book, or music history, then converting completed and wanted items into transfer
 files for Letterboxd and other tracking sites.
 
-No backend. No database. No accounts. No hosting bill.
+No backend. No database. No account connection layer. No hosting bill.
 
 ## What It Does
 
@@ -26,6 +26,30 @@ No backend. No database. No accounts. No hosting bill.
   status Markdown that Notion can import as pages.
 - Keeps the transfer step user-controlled: download the generated file, then
   upload/import it on the destination site where that site supports imports.
+
+## Login and Transfer Model
+
+DoubanRefugee does not collect passwords and does not try to log into
+Letterboxd, Goodreads, RateYourMusic, Filmarks, Notion, or Douban on your
+behalf.
+
+1. Sign in to Douban normally in Chrome or Edge.
+2. Use the extension in that same browser session to scrape pages you can see.
+3. Import the downloaded JSON into the local web or mobile app.
+4. Download transfer files.
+5. Open each destination site yourself while logged in, then upload/import the
+   generated file where that site supports it.
+
+Current destination support:
+
+| Destination | Output | User action |
+| --- | --- | --- |
+| Letterboxd | Watched CSV and watchlist CSV | Upload through Letterboxd's logged-in import screens. |
+| Goodreads | Completed-books CSV | Import while logged into Goodreads. |
+| RateYourMusic | Music CSV helper | Use as staging data for import/manual entry workflows. |
+| Filmarks | Movie CSV helper | Use as a spreadsheet/manual transfer helper. |
+| Notion | Media/status CSV and status Markdown | Import CSV as a database or Markdown as pages. |
+| Backup | JSON and Markdown | Keep locally or re-import later. |
 
 ## Repository Layout
 

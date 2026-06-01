@@ -13,6 +13,10 @@ base URL. Import scraped Douban JSON from the extension, demo data, or pasted
 Douban HTML. Export Letterboxd, Filmarks, Goodreads, RateYourMusic, or backup
 files from the browser.
 
+The web app should explain that destination websites are not connected through
+an API or backend login flow. Test copy should guide the user to download files
+and upload/import them while logged into each destination site.
+
 ## Extension
 
 1. Open Chrome or Edge.
@@ -33,6 +37,8 @@ files from the browser.
 11. Download or copy JSON. The output should include completed and wanted
     records when both sections are visible to your browser session.
 12. Import that JSON in the web app.
+13. Export a transfer file, then verify the UI tells the user to upload it on
+    the destination website while logged in there.
 
 ## Mobile App
 

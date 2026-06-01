@@ -8,6 +8,11 @@ the web app can convert into destination transfer files.
 It can also scrape Douban broadcast/status pages from `/statuses` into JSON for
 Markdown backup in the web app.
 
+The extension uses the user's active browser session. It does not ask for or
+store passwords, and it does not log into destination websites. Destination
+transfer still happens by downloading files and uploading/importing them while
+logged into each destination site.
+
 ## Load It
 
 1. Open Chrome or Edge and go to `chrome://extensions`.

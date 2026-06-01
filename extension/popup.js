@@ -19,6 +19,7 @@ const statusScrapeButton = document.querySelector("#statusScrapeButton");
 const statusCopyButton = document.querySelector("#statusCopyButton");
 const statusDownloadButton = document.querySelector("#statusDownloadButton");
 const statusCancelButton = document.querySelector("#statusCancelButton");
+const statusProgress = document.querySelector("#statusProgress");
 const statusText = document.querySelector("#statusText");
 const preview = document.querySelector("#preview");
 const webAppLink = document.querySelector("#webAppLink");
@@ -115,7 +116,7 @@ async function scrapeHistory() {
   const limitNote = response.reached_max_pages ? " The safety limit was reached; increase it and scrape again if your history is longer." : "";
   const completedCount = extractedPayload.items.filter((item) => item.collection_status === "completed" || item.collection_status === "watched").length;
   const wishlistCount = extractedPayload.items.filter((item) => item.collection_status === "watchlist").length;
-  setStatus(`Scraped ${completedCount} completed and ${wishlistCount} wanted ${mediaTypeInput.value} item(s) from ${response.pages?.length || 0} Douban page(s).${limitNote} Download JSON, then import it in the web app for transfer files.`);
+  setStatus(`Done: ${completedCount} completed, ${wishlistCount} wanted.${limitNote}`);
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -137,6 +138,8 @@ async function scrapeStatuses() {
   statusEndPageInput.value = String(endPage);
   activeStatusRequestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   await chrome.storage.local.set({ statusScrapeCancelRequestId: "" });
+  statusProgress.style.display = "block";
+  statusProgress.value = 0;
 
   const response = await requestExtraction(tab.id, {
     type: "DOUBAN_REFUGEE_SCRAPE_STATUSES",
@@ -168,8 +171,9 @@ async function scrapeStatuses() {
   const hasStatuses = statusPayload.statuses.length > 0;
   statusCopyButton.disabled = !hasStatuses;
   statusDownloadButton.disabled = !hasStatuses;
+  statusProgress.value = 100;
   const cancelNote = response.cancelled ? " The scrape was cancelled after saving completed pages." : "";
-  setStatus(`Scraped ${statusPayload.statuses.length} Douban status(es) from ${response.pages?.length || 0} page(s).${cancelNote} Download JSON, then import it in the web app for Markdown export.`);
+  setStatus(`Done: ${statusPayload.statuses.length} statuses, ${response.pages?.length || 0} page(s).${cancelNote}`);
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -192,7 +196,7 @@ async function requestExtraction(tabId, message) {
 async function copyJson() {
   if (!extractedPayload) return;
   await navigator.clipboard.writeText(JSON.stringify(extractedPayload, null, 2));
-  setStatus("Copied JSON to clipboard. Paste it into the web app's Import JSON flow.");
+  setStatus("Copied JSON to clipboard. Paste it into the local app's Import JSON flow.");
 }
 
 function downloadJson() {
@@ -210,7 +214,7 @@ function downloadJson() {
 async function copyStatusJson() {
   if (!statusPayload) return;
   await navigator.clipboard.writeText(JSON.stringify(statusPayload, null, 2));
-  setStatus("Copied status JSON to clipboard. Paste it into the web app's Status Backup import.");
+  setStatus("Copied status JSON to clipboard. Paste it into the local app's Status Backup import.");
 }
 
 function downloadStatusJson() {
@@ -227,7 +231,7 @@ function downloadStatusJson() {
 
 scrapeButton.addEventListener("click", async () => {
   scrapeButton.disabled = true;
-  setStatus(`Scraping paginated Douban ${mediaTypeInput.value} completed and wanted pages from this tab...`);
+  setStatus(`Scraping ${mediaTypeInput.value} pages...`);
   try {
     await scrapeHistory();
   } catch (error) {
@@ -250,7 +254,7 @@ downloadButton.addEventListener("click", downloadJson);
 statusScrapeButton.addEventListener("click", async () => {
   statusScrapeButton.disabled = true;
   statusCancelButton.disabled = false;
-  setStatus("Scraping Douban statuses from the selected page range...");
+  setStatus("Backing up statuses...");
   try {
     await scrapeStatuses();
   } catch (error) {
@@ -275,12 +279,15 @@ statusDownloadButton.addEventListener("click", downloadStatusJson);
 statusCancelButton.addEventListener("click", async () => {
   if (!activeStatusRequestId) return;
   await chrome.storage.local.set({ statusScrapeCancelRequestId: activeStatusRequestId });
-  setStatus("Cancel requested. The scraper will stop after the current page finishes.");
+  setStatus("Cancel requested.");
 });
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type !== "DOUBAN_REFUGEE_STATUS_PROGRESS" || message.requestId !== activeStatusRequestId) return;
-  setStatus(`Scraped status page ${message.page} (${message.status_count} status(es) on this page).`);
+  const progress = message.total ? Math.round((message.page / message.total) * 100) : 0;
+  statusProgress.style.display = "block";
+  statusProgress.value = progress;
+  setStatus(`Page ${message.page}/${message.total}: ${message.status_count} statuses.`);
 });
 
 openButton.addEventListener("click", async () => {

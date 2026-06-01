@@ -1,9 +1,24 @@
 "use client";
 
-import { Archive, Database, Download, FileJson, Trash2, Upload } from "lucide-react";
+import {
+  Archive,
+  BookOpen,
+  Clapperboard,
+  Database,
+  Download,
+  ExternalLink,
+  FileJson,
+  FileText,
+  Library,
+  Music,
+  ShieldCheck,
+  Trash2,
+  Upload,
+  type LucideIcon,
+} from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CanonicalMedia,
   Destination,
@@ -33,14 +48,31 @@ const exportTargets: {
   label: string;
   mediaType?: MediaType;
   variant?: "secondary" | "accent";
+  icon: LucideIcon;
 }[] = [
-  { destination: "letterboxd", label: "Letterboxd watched CSV", mediaType: "movie", variant: "accent" },
-  { destination: "letterboxd-watchlist", label: "Letterboxd watchlist CSV", mediaType: "movie", variant: "accent" },
-  { destination: "filmarks", label: "Filmarks transfer CSV", mediaType: "movie", variant: "secondary" },
-  { destination: "goodreads", label: "Goodreads import CSV", mediaType: "book", variant: "secondary" },
-  { destination: "rateyourmusic", label: "RateYourMusic transfer CSV", mediaType: "music", variant: "secondary" },
-  { destination: "notion", label: "Notion media database CSV", variant: "accent" },
-  { destination: "backup", label: "Full backup JSON", variant: "accent" },
+  { destination: "letterboxd", label: "Letterboxd", mediaType: "movie", variant: "accent", icon: Clapperboard },
+  { destination: "letterboxd-watchlist", label: "Watchlist", mediaType: "movie", variant: "accent", icon: Clapperboard },
+  { destination: "filmarks", label: "Filmarks", mediaType: "movie", variant: "secondary", icon: Clapperboard },
+  { destination: "goodreads", label: "Goodreads", mediaType: "book", variant: "secondary", icon: BookOpen },
+  { destination: "rateyourmusic", label: "RateYourMusic", mediaType: "music", variant: "secondary", icon: Music },
+  { destination: "notion", label: "Notion", variant: "accent", icon: Library },
+  { destination: "backup", label: "Backup", variant: "accent", icon: Archive },
+];
+
+const flowSteps: { label: string; hint: string; icon: LucideIcon }[] = [
+  { label: "Scrape", hint: "Douban tab", icon: ShieldCheck },
+  { label: "Import", hint: "JSON", icon: Upload },
+  { label: "Export", hint: "CSV/JSON", icon: Download },
+  { label: "Upload", hint: "Your login", icon: ExternalLink },
+];
+
+const destinationChips: { label: string; hint: string; icon: LucideIcon }[] = [
+  { label: "Letterboxd", hint: "CSV", icon: Clapperboard },
+  { label: "Goodreads", hint: "CSV", icon: BookOpen },
+  { label: "RYM", hint: "CSV", icon: Music },
+  { label: "Filmarks", hint: "CSV", icon: Clapperboard },
+  { label: "Notion", hint: "CSV/MD", icon: Library },
+  { label: "Backup", hint: "JSON", icon: Archive },
 ];
 
 export default function Home() {
@@ -51,7 +83,7 @@ export default function Home() {
   const [html, setHtml] = useState("");
   const [htmlMediaType, setHtmlMediaType] = useState<MediaType>("movie");
   const [statuses, setStatuses] = useState<DoubanStatus[]>([]);
-  const [status, setStatus] = useState("Scrape your whole Douban movie, book, or music history with the extension, import JSON here, then export transfer files.");
+  const [status, setStatus] = useState("Ready. Scrape in the extension, import JSON, export files.");
 
   const counts = useMemo(
     () => ({
@@ -195,12 +227,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-end md:justify-between">
+        <header className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-center md:justify-between">
           <div className="max-w-3xl">
             <h1 className="text-2xl font-semibold tracking-normal text-foreground md:text-3xl">DoubanRefugee</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Import Douban media or status JSON, keep it local, and export transfer or backup files.
-            </p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {flowSteps.map((step) => (
+                <IconStep key={step.label} icon={step.icon} label={step.label} hint={step.hint} />
+              ))}
+            </div>
           </div>
           <div className="grid w-full grid-cols-5 gap-2 font-mono text-xs md:w-auto md:min-w-[420px]">
             <Metric label="items" value={items.length.toString()} />
@@ -211,8 +245,9 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="rounded-md border bg-card p-3 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Status:</span> {status}
+        <div className="flex items-center gap-2 rounded-md border bg-card p-3 text-sm text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+          <span>{status}</span>
         </div>
 
         <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
@@ -220,7 +255,6 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Upload className="h-4 w-4 text-primary" />Import</CardTitle>
-                <CardDescription>Import the JSON produced by the extension's Douban history scraper.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -236,7 +270,7 @@ export default function Home() {
                 <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importFile} />
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium uppercase text-muted-foreground">Scraped Douban JSON or backup JSON</label>
+                  <label className="text-xs font-medium uppercase text-muted-foreground">Media JSON</label>
                   <textarea
                     className="min-h-24 w-full rounded-md border bg-background p-3 font-mono text-xs outline-none ring-ring focus:ring-2"
                     onChange={(event) => setJsonText(event.target.value)}
@@ -249,7 +283,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium uppercase text-muted-foreground">Pasted HTML media type</label>
+                  <label className="text-xs font-medium uppercase text-muted-foreground">HTML type</label>
                   <div className="grid grid-cols-3 gap-2 rounded-md bg-muted/55 p-1">
                     {(["movie", "book", "music"] as const).map((type) => (
                       <Button key={type} onClick={() => setHtmlMediaType(type)} variant={htmlMediaType === type ? "default" : "secondary"} size="sm">
@@ -273,7 +307,6 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Archive className="h-4 w-4 text-primary" />Status Backup</CardTitle>
-                <CardDescription>Import Douban broadcast/status JSON from the extension and export a readable Markdown archive.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <textarea
@@ -310,18 +343,20 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Download className="h-4 w-4 text-primary" />Export</CardTitle>
-                <CardDescription>Generate files to import or use as staging data on the destination site.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-3">
-                {exportTargets.map((target) => (
-                  <Button key={target.destination} onClick={() => exportFile(target)} disabled={items.length === 0} variant={target.variant ?? "secondary"}>
-                    <Download className="h-4 w-4" />
-                    {target.label}
-                  </Button>
-                ))}
-                <Button onClick={clearLibrary} disabled={items.length === 0} variant="ghost">
+              <CardContent className="grid grid-cols-2 gap-3">
+                {exportTargets.map((target) => {
+                  const Icon = target.icon;
+                  return (
+                    <Button key={target.destination} onClick={() => exportFile(target)} disabled={items.length === 0} variant={target.variant ?? "secondary"}>
+                      <Icon className="h-4 w-4" />
+                      {target.label}
+                    </Button>
+                  );
+                })}
+                <Button className="col-span-2" onClick={clearLibrary} disabled={items.length === 0} variant="ghost">
                   <Trash2 className="h-4 w-4" />
-                  Clear Local Library
+                  Clear
                 </Button>
               </CardContent>
             </Card>
@@ -330,13 +365,23 @@ export default function Home() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ExternalLink className="h-4 w-4 text-primary" />Outputs</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                {destinationChips.map((destination) => (
+                  <IconChip key={destination.label} icon={destination.icon} label={destination.label} hint={destination.hint} />
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Database className="h-4 w-4 text-primary" />Local Library</CardTitle>
-                <CardDescription>{items.length} media item(s) saved in this browser.</CardDescription>
               </CardHeader>
               <CardContent className="overflow-x-auto scrollbar-thin">
                 {items.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No data imported yet. Use the extension to scrape your Douban collection/history pages, then import the JSON here.
+                    No media yet.
                   </div>
                 ) : (
                   <table className="w-full min-w-[760px] text-left text-sm">
@@ -376,13 +421,12 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Douban Statuses</CardTitle>
-                <CardDescription>Broadcast/status backup imported from the extension, including text, images, cards, reposts, comments, and interaction counts when Douban exposes them.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Statuses</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {statuses.length === 0 ? (
                   <div className="rounded-md border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-                    No statuses imported yet. Open a Douban statuses page with the extension, scrape status backup JSON, then import it here.
+                    No statuses yet.
                   </div>
                 ) : (
                   statuses.slice(0, 12).map((item) => (
@@ -415,6 +459,28 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border bg-card p-3">
       <div className="text-lg font-semibold leading-none">{value}</div>
       <div className="mt-1 text-[10px] uppercase text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function IconStep({ hint, icon: Icon, label }: { hint: string; icon: LucideIcon; label: string }) {
+  return (
+    <div className="rounded-md border bg-card p-3">
+      <Icon className="h-4 w-4 text-primary" />
+      <div className="mt-2 text-xs font-medium">{label}</div>
+      <div className="text-[10px] uppercase text-muted-foreground">{hint}</div>
+    </div>
+  );
+}
+
+function IconChip({ hint, icon: Icon, label }: { hint: string; icon: LucideIcon; label: string }) {
+  return (
+    <div className="rounded-md border bg-muted/25 p-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
     </div>
   );
 }

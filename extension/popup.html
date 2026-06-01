@@ -11,19 +11,38 @@
       <header>
         <p class="eyebrow">History transfer</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Scrape a Douban user's movie, book, or music pages: completed items with ratings/reviews plus wanted items for backup and transfer.</p>
+        <p class="hint">Browser session in, local files out.</p>
       </header>
 
       <label>
         Local web app address
         <input id="webAppUrl" type="url" value="http://localhost:3000">
-        <span class="field-note">This opens the browser app only. It is not an API or backend URL.</span>
+        <span class="field-note">Opens the app only. No API.</span>
       </label>
+
+      <section class="icon-flow" aria-label="Transfer flow">
+        <div class="flow-item">
+          <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-2.8 8.5-7 10-4.2-1.5-7-5.6-7-10V6l7-3z"/><path d="M9 12l2 2 4-5"/></svg></span>
+          <b>Scrape</b>
+        </div>
+        <div class="flow-item">
+          <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg></span>
+          <b>JSON</b>
+        </div>
+        <div class="flow-item">
+          <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+          <b>Export</b>
+        </div>
+        <div class="flow-item">
+          <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></span>
+          <b>Upload</b>
+        </div>
+      </section>
 
       <label>
         History page safety limit
         <input id="maxPages" type="number" min="1" max="200" value="200">
-        <span class="field-note">Start on a Douban user page. The scraper reads the selected media type's /collect and /wish pages and follows pagination until each section ends or this limit is reached.</span>
+        <span class="field-note">Reads /collect and /wish.</span>
       </label>
 
       <label>
@@ -44,7 +63,7 @@
 
       <section class="status-tools">
         <h2>Status backup</h2>
-        <p class="field-note">On `www.douban.com/people/&lt;id&gt;/statuses`, scrape one page or a page range into JSON, then import it in the local app for Markdown export.</p>
+        <p class="field-note">Open /statuses, pick pages, export JSON.</p>
         <div class="page-range">
           <label>
             From page
@@ -56,15 +75,16 @@
           </label>
         </div>
         <div class="actions">
-          <button id="statusScrapeButton" type="button">Scrape statuses</button>
+          <button id="statusScrapeButton" type="button">Backup statuses</button>
           <button id="statusCopyButton" type="button" disabled>Copy status JSON</button>
           <button id="statusDownloadButton" type="button" disabled>Download status JSON</button>
           <button id="statusCancelButton" type="button" disabled>Cancel</button>
         </div>
+        <progress id="statusProgress" max="100" value="0"></progress>
       </section>
 
       <section class="status">
-        <div id="statusText">Open your Douban user page, choose movie/book/music, then scrape completed and wanted items. No API URL needed.</div>
+        <div id="statusText">Open Douban, choose type, scrape. No passwords.</div>
         <pre id="preview" aria-live="polite"></pre>
       </section>
 

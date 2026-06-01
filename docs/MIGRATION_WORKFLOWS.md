@@ -1,5 +1,15 @@
 # Migration Workflows
 
+## Login Model
+
+DoubanRefugee is export-first. It never asks for Douban, Letterboxd,
+Goodreads, RateYourMusic, Filmarks, or Notion credentials.
+
+- Scraping happens inside the user's already logged-in browser session.
+- Destination sites are handled by files the user uploads while logged in there.
+- The app should not promise direct account sync unless a future optional
+  browser helper is built for a specific site.
+
 ## Douban History to Web
 
 1. Sign in to Douban in Chrome or Edge.
@@ -16,6 +26,26 @@
 6. Import the JSON into the web app.
 7. Download Letterboxd watched CSV, Letterboxd watchlist CSV, Filmarks,
    Goodreads, RateYourMusic, or backup JSON.
+
+## Transfer Checklist
+
+1. Scrape Douban in the extension.
+2. Import JSON in the local app.
+3. Review counts and sample rows.
+4. Export the destination file.
+5. Open the destination site while logged in.
+6. Upload/import the file, or use it as a manual transfer spreadsheet.
+
+## Destination Support
+
+| Destination | Best current path |
+| --- | --- |
+| Letterboxd | Upload `letterboxd.csv` for watched films and `letterboxd-watchlist.csv` for wanted films. |
+| Goodreads | Upload/use `goodreads.csv` for completed books. |
+| RateYourMusic | Use `rateyourmusic.csv` as a music transfer helper. |
+| Filmarks | Use `filmarks.csv` as a movie transfer helper. |
+| Notion | Import `notion-douban-media.csv` or `notion-douban-statuses.csv` as databases. |
+| Backup | Keep JSON/Markdown locally for re-import or archive. |
 
 ## Letterboxd Transfer
 

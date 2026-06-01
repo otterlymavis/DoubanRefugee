@@ -128,10 +128,59 @@ button:disabled {
   padding: 12px;
 }
 
+.icon-flow {
+  border: 1px solid #d9e2df;
+  border-radius: 8px;
+  background: #ffffff;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 12px;
+}
+
+.flow-item {
+  align-items: center;
+  color: #33474d;
+  display: grid;
+  font-size: 11px;
+  gap: 5px;
+  justify-items: center;
+  text-align: center;
+}
+
+.flow-icon {
+  align-items: center;
+  background: #e8f4f1;
+  border: 1px solid #c7ded8;
+  border-radius: 999px;
+  color: #0f766e;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.flow-icon svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
+}
+
 .page-range {
   display: grid;
   gap: 8px;
   grid-template-columns: 1fr 1fr;
+}
+
+progress {
+  accent-color: #0f766e;
+  display: none;
+  height: 12px;
+  width: 100%;
 }
 
 .status {
