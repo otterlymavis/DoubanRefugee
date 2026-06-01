@@ -13,6 +13,8 @@ const scrapeButton = document.querySelector("#scrapeButton");
 const copyButton = document.querySelector("#copyButton");
 const downloadButton = document.querySelector("#downloadButton");
 const openButton = document.querySelector("#openButton");
+const copyCookieButton = document.querySelector("#copyCookieButton");
+const cookieStatus = document.querySelector("#cookieStatus");
 const statusStartPageInput = document.querySelector("#statusStartPage");
 const statusEndPageInput = document.querySelector("#statusEndPage");
 const statusScrapeButton = document.querySelector("#statusScrapeButton");
@@ -293,6 +295,27 @@ chrome.runtime.onMessage.addListener((message) => {
 openButton.addEventListener("click", async () => {
   const webAppUrl = await saveSettings();
   await chrome.tabs.create({ url: webAppUrl });
+});
+
+copyCookieButton.addEventListener("click", async () => {
+  cookieStatus.textContent = "Reading…";
+  cookieStatus.className = "cookie-note";
+  try {
+    const cookies = await chrome.cookies.getAll({ domain: ".douban.com" });
+    if (cookies.length === 0) {
+      cookieStatus.textContent = "No Douban cookies found — sign in to Douban first.";
+      cookieStatus.className = "cookie-note err";
+      return;
+    }
+    const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    await navigator.clipboard.writeText(cookieString);
+    cookieStatus.textContent = `✓ Copied (${cookies.length} cookies). Paste in the web app.`;
+    cookieStatus.className = "cookie-note ok";
+    setTimeout(() => { cookieStatus.textContent = ""; }, 5000);
+  } catch (error) {
+    cookieStatus.textContent = error instanceof Error ? error.message : "Copy failed.";
+    cookieStatus.className = "cookie-note err";
+  }
 });
 
 loadSettings().catch((error) => {

@@ -3,7 +3,7 @@
   "name": "DoubanRefugee Transfer Extractor",
   "version": "0.1.0",
   "description": "Scrape your own Douban history into local transfer files.",
-  "permissions": ["activeTab", "clipboardWrite", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "clipboardWrite", "cookies", "scripting", "storage", "tabs"],
   "host_permissions": ["https://*.douban.com/*"],
   "icons": {
     "16": "icons/icon16.png",

@@ -210,6 +210,46 @@ pre {
   white-space: pre-wrap;
 }
 
+.cookie-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-cookie {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 7px;
+  color: #166534;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.btn-cookie:hover {
+  background: #dcfce7;
+}
+
+.btn-cookie:active {
+  background: #bbf7d0;
+}
+
+.cookie-note {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.cookie-note.ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.cookie-note.err {
+  color: #dc2626;
+}
+
 footer {
   border-top: 1px solid #d9e2df;
   padding-top: 10px;
