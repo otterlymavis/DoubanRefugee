@@ -13,8 +13,10 @@ import {
   FolderOpen,
   HardDrive,
   LayoutGrid,
+  Loader2,
   MessageCircle,
   Music,
+  ScanSearch,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -35,6 +37,7 @@ import {
   renderExport,
   saveLibrary,
 } from "@/lib/local-export";
+import { doubanPageUrl } from "@/lib/douban-scraper";
 import {
   DoubanStatus,
   loadStatuses,
@@ -77,6 +80,17 @@ export default function Home() {
   const [pasteMode, setPasteMode] = useState<"json" | "html" | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showStatusBackup, setShowStatusBackup] = useState(false);
+
+  // Scrape state
+  const [scrapeOpen, setScrapeOpen] = useState(false);
+  const [scrapeUserId, setScrapeUserId] = useState("");
+  const [scrapeMediaType, setScrapeMediaType] = useState<MediaType>("movie");
+  const [scrapeWatched, setScrapeWatched] = useState(true);
+  const [scrapeWishlist, setScrapeWishlist] = useState(true);
+  const [scrapeCookie, setScrapeCookie] = useState("");
+  const [showCookie, setShowCookie] = useState(false);
+  const [scrapeRunning, setScrapeRunning] = useState(false);
+  const [scrapeProgress, setScrapeProgress] = useState("");
 
   const counts = useMemo(
     () => ({
@@ -163,6 +177,52 @@ export default function Home() {
     catch (e) { setStatus(messageFrom(e)); }
   }
 
+  async function startScrape() {
+    const userId = scrapeUserId.trim();
+    if (!userId) { setStatus("Enter a Douban user ID first."); return; }
+
+    const sections: Array<"collect" | "wish"> = [
+      ...(scrapeWatched ? ["collect" as const] : []),
+      ...(scrapeWishlist ? ["wish" as const] : []),
+    ];
+    if (sections.length === 0) { setStatus("Select at least one of Watched or Wishlist."); return; }
+
+    setScrapeRunning(true);
+    setScrapeProgress("Starting…");
+    let scraped: CanonicalMedia[] = [];
+
+    for (const section of sections) {
+      let url: string | null = doubanPageUrl(userId, scrapeMediaType, section);
+      let page = 0;
+
+      while (url) {
+        const label = `${scrapeMediaType} ${section === "collect" ? "watched" : "wishlist"} p${page + 1}`;
+        setScrapeProgress(`Scraping ${label}… (${scraped.length} items so far)`);
+
+        try {
+          const params = new URLSearchParams({ url });
+          if (scrapeCookie) params.set("cookie", scrapeCookie);
+          const res: Response = await fetch(`/api/scrape?${params}`);
+          const data: { items?: CanonicalMedia[]; nextUrl?: string | null; error?: string } = await res.json();
+          if (!res.ok) throw new Error(data.error ?? "Scrape failed");
+          scraped = [...scraped, ...(data.items ?? [])];
+          url = data.nextUrl ?? null;
+          page++;
+          if (url) await new Promise((r) => setTimeout(r, 600));
+        } catch (e) {
+          setScrapeProgress("");
+          setScrapeRunning(false);
+          setStatus(`Scrape error: ${messageFrom(e)}`);
+          return;
+        }
+      }
+    }
+
+    setScrapeProgress("");
+    setScrapeRunning(false);
+    importItems(scraped, `Douban scrape for ${userId}`);
+  }
+
   function clearLibrary() { updateLibrary([], "Library cleared."); setShowLibrary(false); }
   function clearStatuses() { updateStatuses([], "Status backup cleared."); }
 
@@ -214,16 +274,124 @@ export default function Home() {
         <section className="mb-5">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">1 — Import</p>
 
+          {/* Scrape — primary action */}
+          <button
+            onClick={() => { setScrapeOpen((v) => !v); setPasteMode(null); }}
+            className={`mb-2 flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all hover:shadow-sm ${
+              scrapeOpen ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/40"
+            }`}
+          >
+            <ScanSearch className={`h-5 w-5 shrink-0 ${scrapeOpen ? "text-primary" : "text-muted-foreground"}`} />
+            <div className="flex-1">
+              <div className="text-sm font-semibold">Scrape from Douban</div>
+              <div className="text-xs text-muted-foreground">Enter a user ID and we fetch their history automatically</div>
+            </div>
+            {scrapeOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+
+          {scrapeOpen && (
+            <div className="mb-2 space-y-3 rounded-2xl border bg-card p-4">
+              {/* User ID */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Douban User ID</label>
+                <input
+                  className="w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+                  placeholder="e.g. otterlymavis"
+                  value={scrapeUserId}
+                  onChange={(e) => setScrapeUserId(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Find your ID in your Douban profile URL: douban.com/people/<strong>your-id</strong>/</p>
+              </div>
+
+              {/* Media type */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Media type</label>
+                <div className="flex gap-1.5">
+                  {([["movie", "🎬", "Movies"], ["book", "📚", "Books"], ["music", "🎵", "Music"]] as const).map(([type, emoji, label]) => (
+                    <button
+                      key={type}
+                      onClick={() => setScrapeMediaType(type)}
+                      className={`flex-1 rounded-xl border py-2 text-sm font-medium transition-colors ${
+                        scrapeMediaType === type
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {emoji} {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Include toggles */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Include</label>
+                <div className="flex gap-2">
+                  {([
+                    [scrapeWatched, setScrapeWatched, "✓ Watched"] as const,
+                    [scrapeWishlist, setScrapeWishlist, "🔖 Wishlist"] as const,
+                  ]).map(([on, toggle, label], i) => (
+                    <button
+                      key={i}
+                      onClick={() => toggle(!on)}
+                      className={`flex-1 rounded-xl border py-2 text-sm font-medium transition-colors ${
+                        on ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cookie (optional) */}
+              <div>
+                <button
+                  onClick={() => setShowCookie((v) => !v)}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  {showCookie ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  Cookie (for private profiles)
+                </button>
+                {showCookie && (
+                  <div className="mt-2 space-y-1">
+                    <input
+                      className="w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
+                      placeholder="Paste your Douban cookie string here"
+                      value={scrapeCookie}
+                      onChange={(e) => setScrapeCookie(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Get it from Chrome DevTools → Network → any douban.com request → Cookie header.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress / button */}
+              {scrapeProgress && (
+                <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                  {scrapeProgress}
+                </div>
+              )}
+
+              <Button onClick={startScrape} disabled={scrapeRunning || !scrapeUserId.trim()} className="w-full gap-2">
+                {scrapeRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />}
+                {scrapeRunning ? "Scraping…" : "Start Scraping"}
+              </Button>
+            </div>
+          )}
+
+          {/* Other import options */}
           <div className="grid grid-cols-4 gap-2">
-            <ImportCard icon={FolderOpen} label="Upload JSON" onClick={() => fileInputRef.current?.click()} primary />
-            <ImportCard icon={Sparkles} label="Try Demo" onClick={importDemo} />
-            <ImportCard icon={FileJson} label="Paste JSON" onClick={() => togglePaste("json")} active={pasteMode === "json"} />
-            <ImportCard icon={Code} label="Paste HTML" onClick={() => togglePaste("html")} active={pasteMode === "html"} />
+            <ImportCard icon={FolderOpen} label="Upload JSON" onClick={() => { fileInputRef.current?.click(); setScrapeOpen(false); }} />
+            <ImportCard icon={Sparkles} label="Try Demo" onClick={() => { importDemo(); setScrapeOpen(false); }} />
+            <ImportCard icon={FileJson} label="Paste JSON" onClick={() => { togglePaste("json"); setScrapeOpen(false); }} active={pasteMode === "json"} />
+            <ImportCard icon={Code} label="Paste HTML" onClick={() => { togglePaste("html"); setScrapeOpen(false); }} active={pasteMode === "html"} />
           </div>
           <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importFile} />
 
           {pasteMode === "json" && (
-            <div className="mt-3 space-y-2 rounded-2xl border bg-card p-4">
+            <div className="mt-2 space-y-2 rounded-2xl border bg-card p-4">
               <textarea
                 className="min-h-[90px] w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
                 value={jsonText}
@@ -235,16 +403,14 @@ export default function Home() {
           )}
 
           {pasteMode === "html" && (
-            <div className="mt-3 space-y-2 rounded-2xl border bg-card p-4">
+            <div className="mt-2 space-y-2 rounded-2xl border bg-card p-4">
               <div className="flex gap-1.5">
                 {(["movie", "book", "music"] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setHtmlMediaType(type)}
                     className={`rounded-lg px-3 py-1 text-xs font-medium capitalize transition-colors ${
-                      htmlMediaType === type
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      htmlMediaType === type ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
                     }`}
                   >
                     {type === "movie" ? "🎬" : type === "book" ? "📚" : "🎵"} {type}
