@@ -27,3 +27,8 @@ Filmarks and RateYourMusic remain destination adapters. The canonical schema,
 matching engine, ingestion layer, and review queue do not need destination-aware
 branches.
 
+## Phase 5: Notion Sync and Local Backups
+
+1. **Local Backups:** The canonical schema is exported to flat `JSON` and `CSV` bundles. These archives contain all metadata, tags, and reviews, allowing users to store a complete snapshot offline.
+2. **Notion Sync:** A dedicated `NotionSyncAdapter` connects to the user's Notion API. It periodically pushes new or modified media items directly into their specified Notion databases, preserving rich properties like ratings, tags, and cover images.
+

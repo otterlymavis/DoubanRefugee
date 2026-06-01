@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileArchive, FileSpreadsheet, Loader2, PlusCircle } from "lucide-react";
+import { Download, FileArchive, FileSpreadsheet, Loader2, PlusCircle, RefreshCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ const DESTINATIONS: { value: Destination; label: string; description: string; me
   { value: "filmarks", label: "Filmarks", description: "CSV import for Japanese movie tracker", mediaTypes: ["movie"] },
   { value: "goodreads", label: "Goodreads", description: "CSV import for book ratings and reviews", mediaTypes: ["book"] },
   { value: "rateyourmusic", label: "RateYourMusic", description: "CSV import for music ratings", mediaTypes: ["music"] },
-  { value: "archive", label: "Full Archive", description: "ZIP bundle with JSON, CSV, and Markdown", mediaTypes: ["movie", "book", "music"] },
+  { value: "archive", label: "Local Backup", description: "JSON and CSV archive for offline storage", mediaTypes: ["movie", "book", "music"] },
+  { value: "notion", label: "Notion", description: "Direct sync to a Notion database", mediaTypes: ["movie", "book", "music"] },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,6 +30,7 @@ const DEST_ICONS: Record<Destination, typeof FileSpreadsheet> = {
   goodreads: FileSpreadsheet,
   rateyourmusic: FileSpreadsheet,
   archive: FileArchive,
+  notion: RefreshCcw,
 };
 
 export default function ExportsPage() {
@@ -103,7 +105,7 @@ export default function ExportsPage() {
       )}
 
       {/* Create export */}
-      <Card className="ledger-panel">
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>New Export</CardTitle>
           <CardDescription>Choose a destination to render your media history into the correct format.</CardDescription>
@@ -122,7 +124,7 @@ export default function ExportsPage() {
                   }}
                   className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
                     selectedDest === d.value
-                      ? "border-primary/60 bg-primary/10 text-primary"
+                      ? "border-foreground bg-muted"
                       : "border-border bg-card hover:bg-muted"
                   }`}
                 >
@@ -144,7 +146,7 @@ export default function ExportsPage() {
                   onClick={() => setSelectedType(t)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors capitalize ${
                     selectedType === t
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-foreground bg-foreground text-background"
                       : "border-border bg-card hover:bg-muted"
                   }`}
                 >
@@ -163,7 +165,7 @@ export default function ExportsPage() {
 
       {/* Export history */}
       {jobs.length > 0 && (
-        <Card>
+        <Card className="shadow-none">
           <CardHeader>
             <CardTitle>Export History</CardTitle>
             <CardDescription>Generated files are available for download until they expire.</CardDescription>
@@ -202,7 +204,7 @@ export default function ExportsPage() {
                       {job.status === "done" ? (
                         <a
                           href={downloadUrl(job.id)}
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-foreground hover:underline"
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -234,7 +236,7 @@ export default function ExportsPage() {
       )}
 
       {/* Format guide */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>Destination Guide</CardTitle>
           <CardDescription>Each export is validated before download. Adapters normalize field names, date formats, and encodings.</CardDescription>

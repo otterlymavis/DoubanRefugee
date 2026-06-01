@@ -35,10 +35,10 @@ const sampleItems: CanonicalMedia[] = [
 ];
 
 const phases = [
-  ["Phase 1", "Douban movie backup and Letterboxd CSV", "active"],
+  ["Phase 1", "Douban backup and Letterboxd CSV", "active"],
   ["Phase 2", "Matching engine and manual review", "ready"],
-  ["Phase 3", "Goodreads and music backup", "planned"],
-  ["Phase 4", "Filmarks, RateYourMusic, sync automation", "planned"],
+  ["Phase 3", "Notion sync and local JSON archives", "planned"],
+  ["Phase 4", "Goodreads, Filmarks, RYM adapters", "planned"],
 ];
 
 export default function Home() {
@@ -79,16 +79,16 @@ export default function Home() {
       <header className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
         <div className="max-w-3xl">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge className="border-primary/30 text-primary">privacy-first</Badge>
-            <Badge>canonical schema</Badge>
-            <Badge>API-first</Badge>
+            <Badge className="border-foreground text-foreground bg-transparent">privacy-first</Badge>
+            <Badge className="text-muted-foreground border-border bg-transparent">canonical schema</Badge>
+            <Badge className="text-muted-foreground border-border bg-transparent">API-first</Badge>
           </div>
           <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-5xl">Dashboard</h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-            Preserve your Douban cultural history, normalize multilingual metadata, and export portable archives.
+            Preserve your Douban cultural history, normalize multilingual metadata, and migrate to Letterboxd, Notion, and robust local offline backups.
           </p>
         </div>
-        <div className="grid min-w-64 grid-cols-3 gap-2 rounded-md border bg-card p-2 font-mono text-xs ledger-panel">
+        <div className="grid min-w-64 grid-cols-3 gap-2 border-b bg-card p-2 font-mono text-xs">
           <Metric label="items" value={sampleItems.length.toString()} />
           <Metric label="matched" value={matched.toString()} />
           <Metric label="exports" value={exportJobId ? "1" : "0"} />
@@ -98,11 +98,11 @@ export default function Home() {
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="space-y-3">
           {phases.map(([phase, label, state]) => (
-            <Card key={phase} className={state === "active" ? "border-primary/50 bg-primary/5" : ""}>
+            <Card key={phase} className={state === "active" ? "border-foreground shadow-none" : "shadow-none"}>
               <CardHeader className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-sm">{phase}</CardTitle>
-                  <Badge>{state}</Badge>
+                  <Badge className={`bg-transparent ${state === "active" ? "border-foreground text-foreground" : "text-muted-foreground"}`}>{state}</Badge>
                 </div>
                 <CardDescription>{label}</CardDescription>
               </CardHeader>
@@ -111,7 +111,7 @@ export default function Home() {
         </aside>
 
         <section className="space-y-6">
-          <Card className="ledger-panel">
+          <Card className="shadow-none">
             <CardHeader>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -138,7 +138,7 @@ export default function Home() {
               </div>
               {exportJobId ? (
                 <a
-                  className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  className="mt-4 inline-flex text-sm font-medium text-foreground underline-offset-4 hover:underline"
                   href={downloadUrl(exportJobId)}
                 >
                   Download generated export
@@ -148,7 +148,7 @@ export default function Home() {
           </Card>
 
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card>
+            <Card className="shadow-none">
               <CardHeader>
                 <CardTitle>Canonical Media Ledger</CardTitle>
                 <CardDescription>Destination adapters read from this normalized record, not from Douban-specific HTML.</CardDescription>
@@ -186,7 +186,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-none">
               <CardHeader>
                 <CardTitle>Manual Review Queue</CardTitle>
                 <CardDescription>Uncertain matches stay visible until a user-selected mapping is persisted.</CardDescription>
@@ -201,9 +201,9 @@ export default function Home() {
 
           <div className="grid gap-4 md:grid-cols-4">
             <Capability icon={ShieldCheck} title="No passwords" text="Cookies are optional and encrypted; browser extraction is preferred." />
-            <Capability icon={FileJson} title="Portable archive" text="JSON, CSV, ZIP, and Markdown outputs preserve the user record." />
-            <Capability icon={Archive} title="Long-lived schema" text="Canonical media items isolate preservation from platform churn." />
-            <Capability icon={Check} title="Adapter checks" text="Every destination adapter validates output before download." />
+            <Capability icon={FileJson} title="Local Backups" text="JSON and CSV outputs preserve your record completely offline." />
+            <Capability icon={RefreshCcw} title="Notion Sync" text="Push rich media items directly into your Notion workspace." />
+            <Capability icon={Check} title="Other Adapters" text="Migrate easily to Letterboxd, Goodreads, and Filmarks." />
           </div>
         </section>
       </div>
@@ -213,7 +213,7 @@ export default function Home() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm bg-muted/60 p-3">
+    <div className="rounded-sm p-3 border border-border bg-background">
       <div className="text-lg font-semibold">{value}</div>
       <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
     </div>
@@ -222,8 +222,8 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function ReviewRow({ icon: Icon, title, detail }: { icon: typeof Languages; title: string; detail: string }) {
   return (
-    <div className="flex gap-3 rounded-md border bg-background/70 p-3">
-      <Icon className="mt-0.5 h-4 w-4 text-primary" />
+    <div className="flex gap-3 border-b bg-background p-3 last:border-0">
+      <Icon className="mt-0.5 h-4 w-4 text-foreground" />
       <div>
         <div className="text-sm font-medium">{title}</div>
         <div className="text-sm text-muted-foreground">{detail}</div>
@@ -234,9 +234,9 @@ function ReviewRow({ icon: Icon, title, detail }: { icon: typeof Languages; titl
 
 function Capability({ icon: Icon, title, text }: { icon: typeof Archive; title: string; text: string }) {
   return (
-    <Card>
+    <Card className="shadow-none">
       <CardHeader className="p-4">
-        <Icon className="h-5 w-5 text-primary" />
+        <Icon className="h-5 w-5 text-foreground" />
         <CardTitle className="text-sm">{title}</CardTitle>
         <CardDescription>{text}</CardDescription>
       </CardHeader>

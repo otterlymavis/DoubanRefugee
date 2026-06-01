@@ -119,13 +119,13 @@ export default function LibraryPage() {
           Run Matching
         </Button>
       </div>
-      {matchMsg && <p className="text-sm text-primary">{matchMsg}</p>}
+      {matchMsg && <p className="text-sm text-foreground">{matchMsg}</p>}
 
       {/* Stats */}
       {items.length > 0 && (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
           {(["movie", "book", "music"] as MediaType[]).map((type) => (
-            <Card key={type} className="cursor-pointer" onClick={() => setFilter(type)}>
+            <Card key={type} className="cursor-pointer shadow-none" onClick={() => setFilter(type)}>
               <CardHeader className="p-4">
                 <CardTitle className="text-2xl font-bold">{counts[type]}</CardTitle>
                 <CardDescription className="capitalize">{type}s</CardDescription>
@@ -143,7 +143,7 @@ export default function LibraryPage() {
             onClick={() => setFilter(value)}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               filter === value
-                ? "border-primary bg-primary text-primary-foreground"
+                ? "border-foreground bg-foreground text-background"
                 : "border-border bg-card hover:bg-muted"
             }`}
           >

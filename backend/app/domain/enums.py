@@ -17,6 +17,7 @@ class DestinationPlatform(StrEnum):
     GOODREADS = "goodreads"
     RATEYOURMUSIC = "rateyourmusic"
     ARCHIVE = "archive"
+    NOTION = "notion"
 
 
 class MatchConfidence(StrEnum):

@@ -1,5 +1,5 @@
 export type MediaType = "movie" | "book" | "music";
-export type Destination = "letterboxd" | "filmarks" | "goodreads" | "rateyourmusic" | "archive";
+export type Destination = "letterboxd" | "filmarks" | "goodreads" | "rateyourmusic" | "archive" | "notion";
 export type InterestType = "collect" | "wish" | "do";
 export type MatchConfidence = "exact" | "high" | "medium" | "manual-review";
 

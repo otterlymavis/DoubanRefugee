@@ -119,7 +119,7 @@ export default function ReviewPage() {
 
       {!loading && queue.length > 0 && (
         <div className="flex items-center gap-3">
-          <SlidersHorizontal className="h-4 w-4 text-primary" />
+          <SlidersHorizontal className="h-4 w-4 text-foreground" />
           <span className="text-sm font-medium">
             {pendingCount} items awaiting review
           </span>

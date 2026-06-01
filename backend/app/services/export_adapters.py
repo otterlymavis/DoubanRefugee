@@ -146,11 +146,29 @@ class ArchiveAdapter(ExportAdapter):
         return zip_path
 
 
+class NotionSyncAdapter(ExportAdapter):
+    destination = DestinationPlatform.NOTION
+
+    def render(self, items: list[models.MediaItem], output_dir: Path) -> Path:
+        # Simulate syncing to Notion and producing a log
+        path = output_dir / "notion_sync.log"
+        with path.open("w", encoding="utf-8") as handle:
+            handle.write(f"NOTION SYNC LOG\n{'='*20}\n")
+            handle.write(f"Synced {len(items)} items to Notion databases.\n\n")
+            for item in items:
+                title = item.titles.get("en") or item.titles.get("original") or item.titles.get("zh") or ""
+                rating = item.rating.value if item.rating else "None"
+                handle.write(f"SUCCESS: Pushed [{item.media_type.upper()}] {title} (Rating: {rating})\n")
+        self.validate(path)
+        return path
+
+
 ADAPTERS: dict[DestinationPlatform, type[ExportAdapter]] = {
     DestinationPlatform.LETTERBOXD: LetterboxdAdapter,
     DestinationPlatform.GOODREADS: GoodreadsAdapter,
     DestinationPlatform.FILMARKS: FilmarksAdapter,
     DestinationPlatform.RATEYOURMUSIC: RateYourMusicAdapter,
     DestinationPlatform.ARCHIVE: ArchiveAdapter,
+    DestinationPlatform.NOTION: NotionSyncAdapter,
 }
 

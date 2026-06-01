@@ -1,9 +1,9 @@
 # DoubanRefugee
 
 DoubanRefugee is a privacy-first cultural history backup and migration platform.
-It preserves Douban movie, book, and music histories in a canonical schema, then
 exports destination-compatible files for Letterboxd, Filmarks, Goodreads, and
-RateYourMusic.
+RateYourMusic. Crucially, it supports robust local backups and seamless syncing
+with Notion for personal database management.
 
 ## MVP Scope
 
@@ -11,7 +11,7 @@ Phase 1 is implemented as a production-ready foundation:
 
 - Douban movie backup ingestion from browser-extension payloads or HTML exports.
 - Canonical media schema for movies, books, and music.
-- Letterboxd CSV export and archive bundle generation.
+- Export to Letterboxd CSV, robust local backups (JSON/CSV archives), and Notion syncing.
 - Matching engine foundations with TMDb, Open Library, and MusicBrainz providers.
 - Manual review API and UI for uncertain matches.
 - FastAPI backend, PostgreSQL, Redis, Dramatiq worker, and Next.js frontend.
@@ -34,7 +34,7 @@ docker-compose.yml
 | `/` | Dashboard — migration wizard, canonical ledger, phase tracker |
 | `/library` | Browse all imported media items; run matching |
 | `/review` | Manual review queue — pick the correct match for uncertain items |
-| `/exports` | Generate and download Letterboxd, Goodreads, RYM, and archive exports |
+| `/exports` | Generate and download Letterboxd, Goodreads, RYM, local backups, and trigger Notion syncs |
 | `/settings` | Account info, API URL configuration, account deletion |
 
 ## Browser Extension

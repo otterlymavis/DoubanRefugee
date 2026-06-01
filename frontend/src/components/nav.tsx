@@ -24,7 +24,7 @@ export function Nav() {
       <aside className="hidden w-52 shrink-0 lg:block">
         <nav className="sticky top-6 space-y-1">
           <div className="mb-5 flex items-center gap-2.5 px-3">
-            <Gauge className="h-5 w-5 text-primary" />
+            <Gauge className="h-5 w-5 text-foreground" />
             <span className="font-semibold tracking-tight">DoubanRefugee</span>
           </div>
           {navItems.map(({ href, icon: Icon, label }) => {
@@ -34,10 +34,10 @@ export function Nav() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -47,7 +47,7 @@ export function Nav() {
             );
           })}
 
-          <div className="mt-6 rounded-md border bg-card/60 p-3 text-xs text-muted-foreground">
+          <div className="mt-6 border-t pt-4 text-xs text-muted-foreground">
             <p className="font-medium text-foreground">Extension ready</p>
             <p className="mt-1 leading-relaxed">Install the browser extension to auto-scrape your Douban history.</p>
           </div>
@@ -65,7 +65,7 @@ export function Nav() {
                 href={href}
                 className={cn(
                   "flex flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground",
+                  active ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon className="h-5 w-5" />

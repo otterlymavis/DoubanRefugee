@@ -63,10 +63,10 @@ export default function SettingsPage() {
       </header>
 
       {/* Account */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-primary" />
+            <User className="h-4 w-4 text-foreground" />
             <CardTitle>Account</CardTitle>
           </div>
           <CardDescription>Your user identity is a UUID generated on first import. No account registration required.</CardDescription>
@@ -88,10 +88,10 @@ export default function SettingsPage() {
       </Card>
 
       {/* API Configuration */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4 text-primary" />
+            <Settings className="h-4 w-4 text-foreground" />
             <CardTitle>API Configuration</CardTitle>
           </div>
           <CardDescription>Points the web UI at the FastAPI backend. Change this if you're running a remote or Docker instance.</CardDescription>
@@ -118,10 +118,10 @@ export default function SettingsPage() {
       </Card>
 
       {/* Privacy */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
+            <Shield className="h-4 w-4 text-foreground" />
             <CardTitle>Privacy Defaults</CardTitle>
           </div>
         </CardHeader>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
               "Browser-extension extraction is preferred over server-side scraping.",
             ].map((point) => (
               <li key={point} className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
                 <span className="text-muted-foreground">{point}</span>
               </li>
             ))}
