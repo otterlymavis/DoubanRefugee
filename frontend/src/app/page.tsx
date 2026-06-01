@@ -88,7 +88,6 @@ export default function Home() {
   const [scrapeWatched, setScrapeWatched] = useState(true);
   const [scrapeWishlist, setScrapeWishlist] = useState(true);
   const [scrapeCookie, setScrapeCookie] = useState("");
-  const [showCookie, setShowCookie] = useState(false);
   const [scrapeRunning, setScrapeRunning] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
 
@@ -344,26 +343,30 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Cookie (optional) */}
-              <div>
-                <button
-                  onClick={() => setShowCookie((v) => !v)}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                >
-                  {showCookie ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  Cookie (for private profiles)
-                </button>
-                {showCookie && (
-                  <div className="mt-2 space-y-1">
-                    <input
-                      className="w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
-                      placeholder="Paste your Douban cookie string here"
-                      value={scrapeCookie}
-                      onChange={(e) => setScrapeCookie(e.target.value)}
-                    />
-                    <p className="text-[11px] text-muted-foreground">Get it from Chrome DevTools → Network → any douban.com request → Cookie header.</p>
-                  </div>
-                )}
+              {/* Cookie — always visible, required for books/music */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Session Cookie <span className="normal-case font-normal text-muted-foreground/70">(required for books &amp; music)</span>
+                </label>
+                <input
+                  className="w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
+                  placeholder="Paste your Douban cookie string here…"
+                  value={scrapeCookie}
+                  onChange={(e) => setScrapeCookie(e.target.value)}
+                />
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[11px] text-primary hover:underline">
+                    How to get your cookie ›
+                  </summary>
+                  <ol className="mt-2 space-y-1 rounded-xl bg-muted/60 p-3 text-[11px] text-muted-foreground list-decimal list-inside">
+                    <li>Open Chrome and sign in to <strong>douban.com</strong></li>
+                    <li>Press <strong>F12</strong> to open DevTools</li>
+                    <li>Click the <strong>Network</strong> tab, then reload the page</li>
+                    <li>Click any request to <strong>douban.com</strong> in the list</li>
+                    <li>Under <strong>Request Headers</strong>, find the <strong>Cookie</strong> row</li>
+                    <li>Copy the entire value and paste it above</li>
+                  </ol>
+                </details>
               </div>
 
               {/* Progress / button */}

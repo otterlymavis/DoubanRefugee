@@ -10,8 +10,15 @@ const FETCH_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
   "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-  Referer: "https://www.douban.com/",
+  "Accept-Encoding": "gzip, deflate, br",
   "Cache-Control": "no-cache",
+  Connection: "keep-alive",
+  DNT: "1",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "same-origin",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
 };
 
 export function doubanPageUrl(userId: string, mediaType: MediaType, status: "collect" | "wish", start = 0): string {
@@ -27,8 +34,17 @@ export async function scrapeDoubanPage(url: string, cookie?: string): Promise<Sc
   const response = await fetch(url, { headers, redirect: "follow" });
 
   if (!response.ok) {
-    const hint = response.status === 403 ? " Profile may be private — add your cookie." : "";
-    throw new Error(`Douban returned HTTP ${response.status}.${hint}`);
+    if (response.status === 403) {
+      throw new Error(
+        "Douban blocked the request (HTTP 403). " +
+        "Book and music pages almost always require your session cookie. " +
+        "Paste your Douban cookie string in the Cookie field and try again.",
+      );
+    }
+    if (response.status === 404) {
+      throw new Error("Douban user not found (HTTP 404). Check the user ID and try again.");
+    }
+    throw new Error(`Douban returned HTTP ${response.status}.`);
   }
 
   const html = await response.text();
