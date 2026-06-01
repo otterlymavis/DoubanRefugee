@@ -17,6 +17,7 @@ import {
   Loader2,
   MessageCircle,
   Music,
+  RefreshCw,
   ScanSearch,
   ShieldCheck,
   Sparkles,
@@ -39,6 +40,7 @@ import {
   saveLibrary,
 } from "@/lib/local-export";
 import { doubanPageUrl } from "@/lib/douban-scraper";
+import type { SyncResult } from "@/lib/notion-sync";
 import {
   DoubanStatus,
   loadStatuses,
@@ -66,7 +68,6 @@ const exportTargets: ExportTargetDef[] = [
   { destination: "goodreads", label: "Goodreads", subtitle: "books", mediaType: "book", icon: BookOpen, iconClass: "text-amber-600", importUrl: "https://www.goodreads.com/review/import" },
   { destination: "rateyourmusic", label: "RYM", subtitle: "music", mediaType: "music", icon: Music, iconClass: "text-purple-600", importUrl: "https://rateyourmusic.com/account/rate_albums" },
   { destination: "filmarks", label: "Filmarks", subtitle: "movies", mediaType: "movie", icon: Film, iconClass: "text-sky-500", importUrl: "https://filmarks.com/" },
-  { destination: "notion", label: "Notion", subtitle: "CSV", icon: LayoutGrid, iconClass: "text-primary", importUrl: "https://www.notion.so/" },
   { destination: "backup", label: "Backup", subtitle: "JSON", icon: HardDrive, iconClass: "text-foreground" },
 ];
 
@@ -94,6 +95,16 @@ export default function Home() {
   const [scrapeProgress, setScrapeProgress] = useState("");
   const [includeReviews, setIncludeReviews] = useState(true);
 
+  // Notion sync state
+  const [showNotion, setShowNotion] = useState(false);
+  const [notionToken, setNotionToken] = useState("");
+  const [notionDbId, setNotionDbId] = useState("");
+  const [notionDbName, setNotionDbName] = useState("");
+  const [notionTesting, setNotionTesting] = useState(false);
+  const [notionSyncing, setNotionSyncing] = useState(false);
+  const [notionResult, setNotionResult] = useState<SyncResult | null>(null);
+  const [notionError, setNotionError] = useState("");
+
   const counts = useMemo(
     () => ({
       movie: items.filter((i) => i.media_type === "movie").length,
@@ -107,6 +118,9 @@ export default function Home() {
     try {
       setItems(loadLibrary());
       setStatuses(loadStatuses());
+      setNotionToken(localStorage.getItem("dr_notion_token") || "");
+      setNotionDbId(localStorage.getItem("dr_notion_db_id") || "");
+      setNotionDbName(localStorage.getItem("dr_notion_db_name") || "");
     } catch (error) {
       setStatus(messageFrom(error));
     }
@@ -231,6 +245,42 @@ export default function Home() {
     setScrapeProgress("");
     setScrapeRunning(false);
     importItems(scraped, `Douban scrape for ${userId}`);
+  }
+
+  async function testNotion() {
+    if (!notionToken || !notionDbId) return;
+    setNotionTesting(true);
+    setNotionError("");
+    setNotionDbName("");
+    try {
+      const res = await fetch(`/api/notion/test?${new URLSearchParams({ token: notionToken, databaseId: notionDbId })}`);
+      const data = await res.json() as { name?: string; error?: string };
+      if (!res.ok) throw new Error(data.error);
+      setNotionDbName(data.name || "Connected");
+      localStorage.setItem("dr_notion_token", notionToken);
+      localStorage.setItem("dr_notion_db_id", notionDbId);
+      localStorage.setItem("dr_notion_db_name", data.name || "");
+    } catch (e) { setNotionError(messageFrom(e)); }
+    finally { setNotionTesting(false); }
+  }
+
+  async function syncToNotion() {
+    if (!notionToken || !notionDbId || items.length === 0) return;
+    setNotionSyncing(true);
+    setNotionError("");
+    setNotionResult(null);
+    try {
+      const res = await fetch("/api/notion/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: notionToken, databaseId: notionDbId, items, includeReviews }),
+      });
+      const data = await res.json() as SyncResult & { error?: string };
+      if (!res.ok) throw new Error(data.error);
+      setNotionResult(data);
+      setStatus(`Notion sync done — ${data.created} created, ${data.updated} updated.`);
+    } catch (e) { setNotionError(messageFrom(e)); }
+    finally { setNotionSyncing(false); }
   }
 
   function clearLibrary() { updateLibrary([], "Library cleared."); setShowLibrary(false); }
@@ -511,6 +561,119 @@ export default function Home() {
             </table>
           </section>
         )}
+
+        {/* Notion Sync */}
+        <section className="mb-2">
+          <button
+            onClick={() => setShowNotion((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-2xl border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50"
+          >
+            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+            <span>Notion Sync</span>
+            {notionDbName && (
+              <span className="rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{notionDbName}</span>
+            )}
+            <span className="ml-auto text-muted-foreground">
+              {showNotion ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </span>
+          </button>
+
+          {showNotion && (
+            <div className="mt-2 space-y-4 rounded-2xl border bg-card p-4">
+              {/* Token */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Integration Token</label>
+                <input
+                  type="password"
+                  className="w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
+                  placeholder="secret_xxxxxxxxxxxxxxxxxxxx"
+                  value={notionToken}
+                  onChange={(e) => { setNotionToken(e.target.value); setNotionDbName(""); }}
+                />
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[11px] text-primary hover:underline">How to create a Notion integration ›</summary>
+                  <ol className="mt-2 space-y-1 rounded-xl bg-muted/60 p-3 text-[11px] text-muted-foreground list-decimal list-inside">
+                    <li>Go to <strong>notion.so/my-integrations</strong> and click <strong>New integration</strong></li>
+                    <li>Name it (e.g. "DoubanRefugee"), select your workspace, click <strong>Submit</strong></li>
+                    <li>Copy the <strong>Internal Integration Token</strong> (starts with <code>secret_</code>)</li>
+                    <li>In your Notion database page, click <strong>⋯ → Connect to → your integration</strong></li>
+                  </ol>
+                </details>
+              </div>
+
+              {/* Database ID */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Database ID or URL</label>
+                <input
+                  className="w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
+                  placeholder="https://notion.so/… or paste the database ID"
+                  value={notionDbId}
+                  onChange={(e) => { setNotionDbId(e.target.value); setNotionDbName(""); }}
+                />
+                <p className="text-[11px] text-muted-foreground">Open your Notion database, copy the URL — the ID is the 32-char hex string in it.</p>
+              </div>
+
+              {/* Required schema notice */}
+              <details className="group">
+                <summary className="cursor-pointer list-none text-[11px] text-primary hover:underline">Required database properties ›</summary>
+                <div className="mt-2 rounded-xl bg-muted/60 p-3 text-[11px] text-muted-foreground">
+                  <p className="mb-2">Your Notion database must have these properties with these exact names:</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono">
+                    {[["Name","Title (default)"],["Douban Key","Text"],["Douban ID","Text"],["Media Type","Select"],["Collection Status","Select"],["Rating","Number"],["Year","Number"],["Date","Date"],["Review","Text"],["Douban URL","URL"],["Tags","Multi-select"]].map(([n, t]) => (
+                      <span key={n}><strong>{n}</strong> — {t}</span>
+                    ))}
+                  </div>
+                </div>
+              </details>
+
+              {/* Error */}
+              {notionError && (
+                <p className="rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">{notionError}</p>
+              )}
+
+              {/* Connected indicator */}
+              {notionDbName && !notionError && (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Connected to <strong>{notionDbName}</strong>
+                </div>
+              )}
+
+              {/* Sync result */}
+              {notionResult && (
+                <div className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  Last sync — <strong className="text-foreground">{notionResult.created}</strong> created · <strong className="text-foreground">{notionResult.updated}</strong> updated
+                  {notionResult.failed > 0 && <> · <strong className="text-destructive">{notionResult.failed}</strong> failed</>}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={testNotion}
+                  disabled={notionTesting || !notionToken || !notionDbId}
+                  variant="secondary"
+                  size="sm"
+                >
+                  {notionTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Test Connection
+                </Button>
+                <Button
+                  onClick={syncToNotion}
+                  disabled={notionSyncing || !notionDbName || items.length === 0}
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  {notionSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  {notionSyncing ? `Syncing ${items.length} items…` : "Sync Library"}
+                </Button>
+              </div>
+              {notionSyncing && (
+                <p className="text-[11px] text-muted-foreground">Syncing at ~3 items/sec to respect Notion rate limits. Don't close this tab.</p>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Status Backup (collapsible) */}
         <section>
