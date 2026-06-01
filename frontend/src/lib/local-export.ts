@@ -151,11 +151,13 @@ export function parseDoubanHtml(html: string, mediaType: MediaType): CanonicalMe
   return items;
 }
 
-export function renderExport(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType): ExportFile {
+export function renderExport(items: CanonicalMedia[], destination: Destination, mediaType?: MediaType, includeReviews = true): ExportFile {
   const scoped = scopedItems(items, destination, mediaType);
   if (scoped.length === 0) {
     throw new Error(`No ${mediaType || "media"} items available for this export.`);
   }
+
+  const review = (item: CanonicalMedia) => (includeReviews ? item.review || "" : "");
 
   switch (destination) {
     case "letterboxd":
@@ -164,7 +166,7 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         item.year || "",
         ratingFor(item),
         item.consumed_date || "",
-        item.review || "",
+        review(item),
         (item.tags || []).join(", "),
       ]);
     case "letterboxd-watchlist":
@@ -179,7 +181,7 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         item.year || "",
         ratingFor(item),
         item.consumed_date || "",
-        item.review || "",
+        review(item),
       ]);
     case "goodreads":
       return csvFile("goodreads.csv", ["Title", "Author", "My Rating", "Date Read", "My Review"], scoped, (item) => [
@@ -187,7 +189,7 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         creatorFor(item, "author"),
         ratingFor(item),
         item.consumed_date || "",
-        item.review || "",
+        review(item),
       ]);
     case "rateyourmusic":
       return csvFile("rateyourmusic.csv", ["Artist", "Release", "Rating", "Date", "Review"], scoped, (item) => [
@@ -195,30 +197,15 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
         titleFor(item),
         ratingFor(item),
         item.consumed_date || "",
-        item.review || "",
+        review(item),
       ]);
     case "notion":
       return csvFile(
         "notion-douban-media.csv",
         [
-          "Name",
-          "Media Type",
-          "Collection Status",
-          "Rating",
-          "Rating Scale",
-          "Date",
-          "Year",
-          "Release Date",
-          "Creators",
-          "Countries",
-          "Review",
-          "Tags",
-          "Douban URL",
-          "Poster URL",
-          "IMDb",
-          "ISBN",
-          "Artist",
-          "Barcode",
+          "Name", "Media Type", "Collection Status", "Rating", "Rating Scale",
+          "Date", "Year", "Release Date", "Creators", "Countries",
+          "Review", "Tags", "Douban URL", "Poster URL", "IMDb", "ISBN", "Artist", "Barcode",
         ],
         scoped,
         (item) => [
@@ -232,7 +219,7 @@ export function renderExport(items: CanonicalMedia[], destination: Destination, 
           item.release_date || "",
           (item.creators || []).join(" / "),
           (item.countries || []).join(" / "),
-          item.review || "",
+          review(item),
           (item.tags || []).join(", "),
           item.source_url || "",
           item.poster_url || "",

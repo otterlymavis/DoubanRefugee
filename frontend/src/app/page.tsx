@@ -90,6 +90,7 @@ export default function Home() {
   const [scrapeCookie, setScrapeCookie] = useState("");
   const [scrapeRunning, setScrapeRunning] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
+  const [includeReviews, setIncludeReviews] = useState(true);
 
   const counts = useMemo(
     () => ({
@@ -157,7 +158,7 @@ export default function Home() {
   }
 
   function exportFile(target: ExportTargetDef) {
-    try { const f = renderExport(items, target.destination, target.mediaType); downloadFile(f); setStatus(`Downloaded ${f.filename}.`); }
+    try { const f = renderExport(items, target.destination, target.mediaType, includeReviews); downloadFile(f); setStatus(`Downloaded ${f.filename}.`); }
     catch (e) { setStatus(messageFrom(e)); }
   }
 
@@ -433,7 +434,23 @@ export default function Home() {
 
         {/* Step 2 — Export */}
         <section className="mb-5">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">2 — Export to</p>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">2 — Export to</p>
+            <div className="flex rounded-xl border bg-card p-0.5 text-xs font-medium">
+              <button
+                onClick={() => setIncludeReviews(false)}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${!includeReviews ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                ⭐ Ratings only
+              </button>
+              <button
+                onClick={() => setIncludeReviews(true)}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${includeReviews ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                ⭐📝 Ratings + Reviews
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
             {exportTargets.map((target) => (
               <ExportCard
