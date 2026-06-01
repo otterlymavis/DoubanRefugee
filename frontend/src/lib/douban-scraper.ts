@@ -21,6 +21,48 @@ const FETCH_HEADERS = {
   "Upgrade-Insecure-Requests": "1",
 };
 
+export type EnrichResult = {
+  sourceId: string;
+  originalTitle?: string;
+  alternativeTitles: string[];
+  imdbId?: string;
+  year?: number;
+};
+
+export async function enrichSubject(sourceId: string, mediaType: MediaType, cookie?: string): Promise<EnrichResult> {
+  const sub = mediaType === "book" ? "book" : mediaType === "music" ? "music" : "movie";
+  const url = `https://${sub}.douban.com/subject/${sourceId}/`;
+  const headers: Record<string, string> = { ...FETCH_HEADERS };
+  if (cookie) headers["Cookie"] = cookie;
+
+  const res = await fetch(url, { headers, redirect: "follow" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+  const root = parse(html);
+
+  // Year from <span class="year">(2026)</span>
+  const yearText = compact(root.querySelector("span.year, h1 .year")?.text || "");
+  const year = yearText.match(/\b(19|20)\d{2}\b/)?.[0];
+
+  // Alternative titles — Douban lists them under "又名:" in #info
+  const infoEl = root.querySelector("#info");
+  const infoText = infoEl?.text || "";
+
+  // "又名:" line
+  const altSection = infoText.match(/又名[：:]\s*([^\n]+)/)?.[1] || "";
+  const alternativeTitles = altSection.split(/\s*\/\s*/).map(compact).filter(Boolean);
+
+  // First Latin-script alternative = original/English title
+  const originalTitle = alternativeTitles.find((t) => /^[A-Za-z]/.test(t));
+
+  // IMDb ID from a link or plain text in #info
+  const imdbLink = infoEl?.querySelector("a[href*='imdb.com']");
+  const imdbText = imdbLink?.getAttribute("href") || imdbLink?.text || infoText;
+  const imdbId = imdbText.match(/\btt\d{7,9}\b/i)?.[0];
+
+  return { sourceId, originalTitle, alternativeTitles, imdbId, year: year ? Number(year) : undefined };
+}
+
 export function doubanPageUrl(userId: string, mediaType: MediaType, status: "collect" | "wish", start = 0): string {
   const sub = mediaType === "book" ? "book" : mediaType === "music" ? "music" : "movie";
   const mode = mediaType === "movie" ? "grid" : "list";

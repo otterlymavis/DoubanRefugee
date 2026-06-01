@@ -40,6 +40,7 @@ import {
   saveLibrary,
 } from "@/lib/local-export";
 import { doubanPageUrl } from "@/lib/douban-scraper";
+import type { EnrichResult } from "@/lib/douban-scraper";
 import type { SyncResult } from "@/lib/notion-sync";
 import {
   DoubanStatus,
@@ -94,6 +95,10 @@ export default function Home() {
   const [scrapeRunning, setScrapeRunning] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
   const [includeReviews, setIncludeReviews] = useState(true);
+
+  // Enrich state
+  const [enrichRunning, setEnrichRunning] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState("");
 
   // Notion sync state
   const [showNotion, setShowNotion] = useState(false);
@@ -247,6 +252,47 @@ export default function Home() {
     importItems(scraped, `Douban scrape for ${userId}`);
   }
 
+  async function enrichLibrary() {
+    const needsEnrich = items.filter((item) => !item.titles.en && !item.titles.original);
+    if (needsEnrich.length === 0) { setStatus("All items already have original titles."); return; }
+
+    setEnrichRunning(true);
+    let enriched = 0;
+    let updatedItems = [...items];
+
+    for (let i = 0; i < needsEnrich.length; i++) {
+      const item = needsEnrich[i];
+      setEnrichProgress(`Fetching ${i + 1}/${needsEnrich.length} — ${item.titles.zh || item.source_id}`);
+      try {
+        const params = new URLSearchParams({ sourceId: item.source_id, mediaType: item.media_type });
+        if (scrapeCookie) params.set("cookie", scrapeCookie);
+        const res = await fetch(`/api/enrich?${params}`);
+        const data = await res.json() as EnrichResult & { error?: string };
+        if (res.ok && (data.originalTitle || data.imdbId || data.year)) {
+          updatedItems = updatedItems.map((it) => {
+            if (it.source_id !== item.source_id || it.media_type !== item.media_type) return it;
+            return {
+              ...it,
+              titles: {
+                ...it.titles,
+                ...(data.originalTitle ? { en: data.originalTitle } : {}),
+                ...(data.alternativeTitles?.length ? { original: data.alternativeTitles[0] } : {}),
+              },
+              year: it.year ?? data.year,
+              external_ids: { ...it.external_ids, ...(data.imdbId ? { imdb: data.imdbId } : {}) },
+            };
+          });
+          enriched++;
+        }
+      } catch { /* skip individual failures */ }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    setEnrichRunning(false);
+    setEnrichProgress("");
+    updateLibrary(updatedItems, `Enriched ${enriched}/${needsEnrich.length} items with original titles.`);
+  }
+
   async function testNotion() {
     if (!notionToken || !notionDbId) return;
     setNotionTesting(true);
@@ -319,6 +365,20 @@ export default function Home() {
                 {showLibrary ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 {items.length} items
               </button>
+              {(() => {
+                const missing = items.filter((i) => !i.titles.en && !i.titles.original).length;
+                return missing > 0 ? (
+                  <button
+                    onClick={enrichLibrary}
+                    disabled={enrichRunning}
+                    title={`${missing} items missing original title — click to fetch from Douban`}
+                    className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    {enrichRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                    {enrichRunning ? enrichProgress.split("—")[0]?.trim() : `Enrich ${missing}`}
+                  </button>
+                ) : null;
+              })()}
               <button
                 onClick={clearLibrary}
                 title="Clear library"
@@ -329,6 +389,13 @@ export default function Home() {
             </>
           )}
         </div>
+
+        {enrichRunning && enrichProgress && (
+          <div className="mb-3 flex items-center gap-2 rounded-2xl border bg-amber-50 px-4 py-2.5 text-xs text-amber-700">
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+            <span className="truncate">{enrichProgress}</span>
+          </div>
+        )}
 
         {/* Step 1 — Import */}
         <section className="mb-5">
