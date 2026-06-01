@@ -8,6 +8,7 @@ import {
   Clapperboard,
   Code,
   Download,
+  ExternalLink,
   FileJson,
   Film,
   FolderOpen,
@@ -56,15 +57,16 @@ type ExportTargetDef = {
   mediaType?: MediaType;
   icon: LucideIcon;
   iconClass: string;
+  importUrl?: string;
 };
 
 const exportTargets: ExportTargetDef[] = [
-  { destination: "letterboxd", label: "Letterboxd", subtitle: "watched", mediaType: "movie", icon: Clapperboard, iconClass: "text-emerald-600" },
-  { destination: "letterboxd-watchlist", label: "Watchlist", subtitle: "want to see", mediaType: "movie", icon: Bookmark, iconClass: "text-emerald-500" },
-  { destination: "goodreads", label: "Goodreads", subtitle: "books", mediaType: "book", icon: BookOpen, iconClass: "text-amber-600" },
-  { destination: "rateyourmusic", label: "RYM", subtitle: "music", mediaType: "music", icon: Music, iconClass: "text-purple-600" },
-  { destination: "filmarks", label: "Filmarks", subtitle: "movies", mediaType: "movie", icon: Film, iconClass: "text-sky-500" },
-  { destination: "notion", label: "Notion", subtitle: "CSV", icon: LayoutGrid, iconClass: "text-primary" },
+  { destination: "letterboxd", label: "Letterboxd", subtitle: "watched", mediaType: "movie", icon: Clapperboard, iconClass: "text-emerald-600", importUrl: "https://letterboxd.com/import/" },
+  { destination: "letterboxd-watchlist", label: "Watchlist", subtitle: "want to see", mediaType: "movie", icon: Bookmark, iconClass: "text-emerald-500", importUrl: "https://letterboxd.com/watchlist/upload/" },
+  { destination: "goodreads", label: "Goodreads", subtitle: "books", mediaType: "book", icon: BookOpen, iconClass: "text-amber-600", importUrl: "https://www.goodreads.com/review/import" },
+  { destination: "rateyourmusic", label: "RYM", subtitle: "music", mediaType: "music", icon: Music, iconClass: "text-purple-600", importUrl: "https://rateyourmusic.com/account/rate_albums" },
+  { destination: "filmarks", label: "Filmarks", subtitle: "movies", mediaType: "movie", icon: Film, iconClass: "text-sky-500", importUrl: "https://filmarks.com/" },
+  { destination: "notion", label: "Notion", subtitle: "CSV", icon: LayoutGrid, iconClass: "text-primary", importUrl: "https://www.notion.so/" },
   { destination: "backup", label: "Backup", subtitle: "JSON", icon: HardDrive, iconClass: "text-foreground" },
 ];
 
@@ -158,8 +160,16 @@ export default function Home() {
   }
 
   function exportFile(target: ExportTargetDef) {
-    try { const f = renderExport(items, target.destination, target.mediaType, includeReviews); downloadFile(f); setStatus(`Downloaded ${f.filename}.`); }
-    catch (e) { setStatus(messageFrom(e)); }
+    try {
+      const f = renderExport(items, target.destination, target.mediaType, includeReviews);
+      downloadFile(f);
+      if (target.importUrl) {
+        setStatus(`Downloaded ${f.filename} — opening ${target.label} import page…`);
+        setTimeout(() => window.open(target.importUrl, "_blank", "noopener,noreferrer"), 400);
+      } else {
+        setStatus(`Downloaded ${f.filename}.`);
+      }
+    } catch (e) { setStatus(messageFrom(e)); }
   }
 
   function exportStatusMarkdown() {
@@ -629,8 +639,11 @@ function ExportCard({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="group flex flex-col items-center gap-1.5 rounded-2xl border bg-card p-3 text-center transition-all hover:border-primary hover:bg-muted/50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-35 active:scale-95"
+      className="group relative flex flex-col items-center gap-1.5 rounded-2xl border bg-card p-3 text-center transition-all hover:border-primary hover:bg-muted/50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-35 active:scale-95"
     >
+      {target.importUrl && (
+        <ExternalLink className="absolute right-2 top-2 h-2.5 w-2.5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+      )}
       <Icon className={`h-6 w-6 transition-transform group-hover:scale-110 ${target.iconClass}`} />
       <span className="text-[11px] font-semibold leading-tight">{target.label}</span>
       <span className="text-[9px] leading-tight text-muted-foreground">{target.subtitle}</span>
