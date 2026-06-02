@@ -69,6 +69,7 @@ const exportTargets: ExportTargetDef[] = [
   { destination: "goodreads", label: "Goodreads", subtitle: "books", mediaType: "book", icon: BookOpen, iconClass: "text-amber-600", importUrl: "https://www.goodreads.com/review/import" },
   { destination: "rateyourmusic", label: "RYM", subtitle: "music", mediaType: "music", icon: Music, iconClass: "text-purple-600", importUrl: "https://rateyourmusic.com/account/rate_albums" },
   { destination: "filmarks", label: "Filmarks", subtitle: "movies", mediaType: "movie", icon: Film, iconClass: "text-sky-500", importUrl: "https://filmarks.com/" },
+  { destination: "notion", label: "Notion", subtitle: "Sync", icon: LayoutGrid, iconClass: "text-foreground" },
   { destination: "backup", label: "Backup", subtitle: "JSON", icon: HardDrive, iconClass: "text-foreground" },
 ];
 
@@ -584,69 +585,36 @@ export default function Home() {
                 key={target.destination}
                 target={target}
                 disabled={items.length === 0}
-                onClick={() => exportFile(target)}
+                onClick={() => {
+                  if (target.destination === "notion") {
+                    setShowNotion((v) => !v);
+                  } else {
+                    exportFile(target);
+                  }
+                }}
               />
             ))}
           </div>
           {items.length === 0 && (
             <p className="mt-2 text-center text-xs text-muted-foreground">Import data first to unlock exports</p>
           )}
-        </section>
-
-        {/* Library table (collapsible) */}
-        {showLibrary && items.length > 0 && (
-          <section className="mb-5 overflow-x-auto rounded-2xl border bg-card">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Title</th>
-                  <th className="px-3 py-3">Type</th>
-                  <th className="px-3 py-3">Year</th>
-                  <th className="px-3 py-3">Rating</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr
-                    key={`${item.media_type}:${item.source_id}:${item.collection_status || "item"}`}
-                    className="border-b last:border-0 hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{item.titles.en || item.titles.original || item.titles.zh || item.source_id}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">{item.source_id}</div>
-                    </td>
-                    <td className="px-3 py-2.5 capitalize text-muted-foreground">{item.media_type}</td>
-                    <td className="px-3 py-2.5">{item.year || "—"}</td>
-                    <td className="px-3 py-2.5">{item.rating ? `${item.rating.value}/${item.rating.scale}` : "—"}</td>
-                    <td className="px-3 py-2.5 capitalize text-muted-foreground">{item.collection_status || "—"}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{item.consumed_date || item.marked_date || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
-
-        {/* Notion Sync */}
-        <section className="mb-2">
-          <button
-            onClick={() => setShowNotion((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-2xl border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50"
-          >
-            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-            <span>Notion Sync</span>
-            {notionDbName && (
-              <span className="rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{notionDbName}</span>
-            )}
-            <span className="ml-auto text-muted-foreground">
-              {showNotion ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </span>
-          </button>
 
           {showNotion && (
-            <div className="mt-2 space-y-4 rounded-2xl border bg-card p-4">
+            <div className="mt-4 space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm relative">
+              <button
+                onClick={() => setShowNotion(false)}
+                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                <LayoutGrid className="h-4 w-4" />
+                Notion API Sync
+                {notionDbName && (
+                  <span className="rounded-full border border-primary/20 bg-background px-2 py-0.5 text-[10px] font-medium text-primary">{notionDbName}</span>
+                )}
+              </div>
+              
               {/* Token */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Integration Token</label>
@@ -741,6 +709,43 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        {/* Library table (collapsible) */}
+        {showLibrary && items.length > 0 && (
+          <section className="mb-5 overflow-x-auto rounded-2xl border bg-card">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-3 py-3">Type</th>
+                  <th className="px-3 py-3">Year</th>
+                  <th className="px-3 py-3">Rating</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr
+                    key={`${item.media_type}:${item.source_id}:${item.collection_status || "item"}`}
+                    className="border-b last:border-0 hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{item.titles.en || item.titles.original || item.titles.zh || item.source_id}</div>
+                      <div className="font-mono text-[10px] text-muted-foreground">{item.source_id}</div>
+                    </td>
+                    <td className="px-3 py-2.5 capitalize text-muted-foreground">{item.media_type}</td>
+                    <td className="px-3 py-2.5">{item.year || "—"}</td>
+                    <td className="px-3 py-2.5">{item.rating ? `${item.rating.value}/${item.rating.scale}` : "—"}</td>
+                    <td className="px-3 py-2.5 capitalize text-muted-foreground">{item.collection_status || "—"}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{item.consumed_date || item.marked_date || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
 
         {/* Status Backup (collapsible) */}
         <section>

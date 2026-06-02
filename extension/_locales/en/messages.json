@@ -1,0 +1,152 @@
+{
+  "extensionName": {
+    "message": "DoubanRefugee Transfer Extractor"
+  },
+  "extensionDesc": {
+    "message": "Scrape your own Douban history into local transfer files."
+  },
+  "historyTransfer": {
+    "message": "History transfer"
+  },
+  "tagline": {
+    "message": "Browser session in, local files out."
+  },
+  "localWebAppAddr": {
+    "message": "Local web app address"
+  },
+  "localWebAppNote": {
+    "message": "Opens the app only. No API."
+  },
+  "copyCookieBtn": {
+    "message": "🍪 Copy Douban Cookie"
+  },
+  "scrapeTitle": {
+    "message": "Scrape"
+  },
+  "jsonTitle": {
+    "message": "JSON"
+  },
+  "exportTitle": {
+    "message": "Export"
+  },
+  "uploadTitle": {
+    "message": "Upload"
+  },
+  "historyPageLimit": {
+    "message": "History page safety limit"
+  },
+  "historyPageLimitNote": {
+    "message": "Reads /collect and /wish."
+  },
+  "mediaType": {
+    "message": "Media type"
+  },
+  "movie": {
+    "message": "Movie"
+  },
+  "book": {
+    "message": "Book"
+  },
+  "music": {
+    "message": "Music"
+  },
+  "scrapeBtn": {
+    "message": "Scrape whole history"
+  },
+  "copyBtn": {
+    "message": "Copy JSON"
+  },
+  "downloadBtn": {
+    "message": "Download JSON"
+  },
+  "openAppBtn": {
+    "message": "Open local app"
+  },
+  "statusBackup": {
+    "message": "Status backup"
+  },
+  "statusNote": {
+    "message": "Open /statuses, pick pages, export JSON."
+  },
+  "fromPage": {
+    "message": "From page"
+  },
+  "toPage": {
+    "message": "To page"
+  },
+  "backupStatusesBtn": {
+    "message": "Backup statuses"
+  },
+  "copyStatusBtn": {
+    "message": "Copy status JSON"
+  },
+  "downloadStatusBtn": {
+    "message": "Download status JSON"
+  },
+  "cancelBtn": {
+    "message": "Cancel"
+  },
+  "statusIdle": {
+    "message": "Open Douban, choose type, scrape. No passwords."
+  },
+  "footerLink": {
+    "message": "Open local web app"
+  },
+  "errorNoTab": {
+    "message": "No active tab found."
+  },
+  "errorOpenHistory": {
+    "message": "Open your douban.com collection/history page first."
+  },
+  "errorScraperNoResponse": {
+    "message": "The paged history scraper did not respond."
+  },
+  "doneStatus": {
+    "message": "Done: $1 completed, $2 wanted.$3"
+  },
+  "errorOpenStatuses": {
+    "message": "Open a Douban statuses page first, such as https://www.douban.com/people/<id>/statuses."
+  },
+  "errorStatusScraperNoResponse": {
+    "message": "The Douban status scraper did not respond."
+  },
+  "doneStatuses": {
+    "message": "Done: $1 statuses, $2 page(s).$3"
+  },
+  "copiedJson": {
+    "message": "Copied JSON to clipboard. Paste it into the local app's Import JSON flow."
+  },
+  "downloadedJson": {
+    "message": "Downloaded douban-refugee-import.json."
+  },
+  "copiedStatusJson": {
+    "message": "Copied status JSON to clipboard. Paste it into the local app's Status Backup import."
+  },
+  "downloadedStatusJson": {
+    "message": "Downloaded douban-refugee-statuses.json."
+  },
+  "scrapingPages": {
+    "message": "Scraping pages..."
+  },
+  "backingUp": {
+    "message": "Backing up statuses..."
+  },
+  "cancelRequested": {
+    "message": "Cancel requested."
+  },
+  "statusPageCount": {
+    "message": "Page $1/$2: $3 statuses."
+  },
+  "cookieReading": {
+    "message": "Reading…"
+  },
+  "cookieNoDouban": {
+    "message": "No Douban cookies found — sign in to Douban first."
+  },
+  "cookieCopied": {
+    "message": "✓ Copied ($1 cookies). Paste in the web app."
+  },
+  "cookieCopyFailed": {
+    "message": "Copy failed."
+  }
+}

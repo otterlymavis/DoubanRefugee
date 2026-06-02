@@ -1,0 +1,152 @@
+{
+  "extensionName": {
+    "message": "豆瓣难民数据导出"
+  },
+  "extensionDesc": {
+    "message": "抓取并导出你自己的豆瓣数据记录到本地文件中。"
+  },
+  "historyTransfer": {
+    "message": "历史数据转移"
+  },
+  "tagline": {
+    "message": "浏览器抓取，本地文件导出。"
+  },
+  "localWebAppAddr": {
+    "message": "本地 Web 应用地址"
+  },
+  "localWebAppNote": {
+    "message": "仅打开应用，无 API 交互。"
+  },
+  "copyCookieBtn": {
+    "message": "🍪 复制豆瓣 Cookie"
+  },
+  "scrapeTitle": {
+    "message": "抓取"
+  },
+  "jsonTitle": {
+    "message": "JSON"
+  },
+  "exportTitle": {
+    "message": "导出"
+  },
+  "uploadTitle": {
+    "message": "上传"
+  },
+  "historyPageLimit": {
+    "message": "历史页面安全限制"
+  },
+  "historyPageLimitNote": {
+    "message": "读取 /collect（看过）和 /wish（想看）。"
+  },
+  "mediaType": {
+    "message": "媒体类型"
+  },
+  "movie": {
+    "message": "电影"
+  },
+  "book": {
+    "message": "图书"
+  },
+  "music": {
+    "message": "音乐"
+  },
+  "scrapeBtn": {
+    "message": "抓取全部历史"
+  },
+  "copyBtn": {
+    "message": "复制 JSON"
+  },
+  "downloadBtn": {
+    "message": "下载 JSON"
+  },
+  "openAppBtn": {
+    "message": "打开本地应用"
+  },
+  "statusBackup": {
+    "message": "广播备份"
+  },
+  "statusNote": {
+    "message": "打开 /statuses 页面，选择页码范围，然后导出 JSON。"
+  },
+  "fromPage": {
+    "message": "起始页码"
+  },
+  "toPage": {
+    "message": "结束页码"
+  },
+  "backupStatusesBtn": {
+    "message": "备份广播"
+  },
+  "copyStatusBtn": {
+    "message": "复制广播 JSON"
+  },
+  "downloadStatusBtn": {
+    "message": "下载广播 JSON"
+  },
+  "cancelBtn": {
+    "message": "取消"
+  },
+  "statusIdle": {
+    "message": "打开豆瓣，选择类型，点击抓取。不需要密码。"
+  },
+  "footerLink": {
+    "message": "打开本地 Web 应用"
+  },
+  "errorNoTab": {
+    "message": "未找到活动标签页。"
+  },
+  "errorOpenHistory": {
+    "message": "请先打开 douban.com 的收藏/历史页面。"
+  },
+  "errorScraperNoResponse": {
+    "message": "历史数据抓取器无响应。"
+  },
+  "doneStatus": {
+    "message": "完成：看过 $1 个，想看 $2 个。$3"
+  },
+  "errorOpenStatuses": {
+    "message": "请先打开豆瓣广播页面，例如 https://www.douban.com/people/<id>/statuses"
+  },
+  "errorStatusScraperNoResponse": {
+    "message": "豆瓣广播抓取器无响应。"
+  },
+  "doneStatuses": {
+    "message": "完成：$1 条广播，共 $2 页。$3"
+  },
+  "copiedJson": {
+    "message": "JSON 已复制到剪贴板。请将其粘贴到本地应用导入。"
+  },
+  "downloadedJson": {
+    "message": "已下载 douban-refugee-import.json。"
+  },
+  "copiedStatusJson": {
+    "message": "广播 JSON 已复制到剪贴板。请将其粘贴到本地应用导入。"
+  },
+  "downloadedStatusJson": {
+    "message": "已下载 douban-refugee-statuses.json。"
+  },
+  "scrapingPages": {
+    "message": "正在抓取页面..."
+  },
+  "backingUp": {
+    "message": "正在备份广播..."
+  },
+  "cancelRequested": {
+    "message": "已请求取消。"
+  },
+  "statusPageCount": {
+    "message": "第 $1/$2 页：$3 条广播。"
+  },
+  "cookieReading": {
+    "message": "读取中…"
+  },
+  "cookieNoDouban": {
+    "message": "未找到豆瓣 Cookie —— 请先登录豆瓣。"
+  },
+  "cookieCopied": {
+    "message": "✓ 已复制 ($1 个 Cookie)。请在 Web 应用中粘贴。"
+  },
+  "cookieCopyFailed": {
+    "message": "复制失败。"
+  }
+}

@@ -43,7 +43,7 @@ function normalizeUrl(value) {
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) throw new Error("No active tab found.");
+  if (!tab?.id) throw new Error(chrome.i18n.getMessage("errorNoTab"));
   return tab;
 }
 
@@ -85,7 +85,7 @@ async function scrapeHistory() {
   const tab = await getActiveTab();
 
   if (!tab.url || !tab.url.includes("douban.com")) {
-    throw new Error("Open your douban.com collection/history page first.");
+    throw new Error(chrome.i18n.getMessage("errorOpenHistory"));
   }
 
   const response = await requestExtraction(tab.id, {
@@ -95,7 +95,7 @@ async function scrapeHistory() {
   });
 
   if (!response?.ok) {
-    throw new Error(response?.error || "The paged history scraper did not respond.");
+    throw new Error(response?.error || chrome.i18n.getMessage("errorScraperNoResponse"));
   }
 
   extractedPayload = {
@@ -115,10 +115,10 @@ async function scrapeHistory() {
   const hasItems = extractedPayload.items.length > 0;
   copyButton.disabled = !hasItems;
   downloadButton.disabled = !hasItems;
-  const limitNote = response.reached_max_pages ? " The safety limit was reached; increase it and scrape again if your history is longer." : "";
+  const limitNote = response.reached_max_pages ? " (Limit Reached)" : "";
   const completedCount = extractedPayload.items.filter((item) => item.collection_status === "completed" || item.collection_status === "watched").length;
   const wishlistCount = extractedPayload.items.filter((item) => item.collection_status === "watchlist").length;
-  setStatus(`Done: ${completedCount} completed, ${wishlistCount} wanted.${limitNote}`);
+  setStatus(chrome.i18n.getMessage("doneStatus", [String(completedCount), String(wishlistCount), limitNote]));
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -131,7 +131,7 @@ async function scrapeStatuses() {
   const tab = await getActiveTab();
 
   if (!tab.url || !tab.url.includes("douban.com") || !tab.url.includes("/statuses")) {
-    throw new Error("Open a Douban statuses page first, such as https://www.douban.com/people/<id>/statuses.");
+    throw new Error(chrome.i18n.getMessage("errorOpenStatuses"));
   }
 
   const startPage = Number(normalizePage(statusStartPageInput.value));
@@ -151,7 +151,7 @@ async function scrapeStatuses() {
   });
 
   if (!response?.ok) {
-    throw new Error(response?.error || "The Douban status scraper did not respond.");
+    throw new Error(response?.error || chrome.i18n.getMessage("errorStatusScraperNoResponse"));
   }
 
   statusPayload = {
@@ -174,8 +174,8 @@ async function scrapeStatuses() {
   statusCopyButton.disabled = !hasStatuses;
   statusDownloadButton.disabled = !hasStatuses;
   statusProgress.value = 100;
-  const cancelNote = response.cancelled ? " The scrape was cancelled after saving completed pages." : "";
-  setStatus(`Done: ${statusPayload.statuses.length} statuses, ${response.pages?.length || 0} page(s).${cancelNote}`);
+  const cancelNote = response.cancelled ? " (Cancelled)" : "";
+  setStatus(chrome.i18n.getMessage("doneStatuses", [String(statusPayload.statuses.length), String(response.pages?.length || 0), cancelNote]));
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
@@ -198,7 +198,7 @@ async function requestExtraction(tabId, message) {
 async function copyJson() {
   if (!extractedPayload) return;
   await navigator.clipboard.writeText(JSON.stringify(extractedPayload, null, 2));
-  setStatus("Copied JSON to clipboard. Paste it into the local app's Import JSON flow.");
+  setStatus(chrome.i18n.getMessage("copiedJson"));
 }
 
 function downloadJson() {
@@ -210,13 +210,13 @@ function downloadJson() {
   anchor.download = "douban-refugee-import.json";
   anchor.click();
   URL.revokeObjectURL(url);
-  setStatus("Downloaded douban-refugee-import.json.");
+  setStatus(chrome.i18n.getMessage("downloadedJson"));
 }
 
 async function copyStatusJson() {
   if (!statusPayload) return;
   await navigator.clipboard.writeText(JSON.stringify(statusPayload, null, 2));
-  setStatus("Copied status JSON to clipboard. Paste it into the local app's Status Backup import.");
+  setStatus(chrome.i18n.getMessage("copiedStatusJson"));
 }
 
 function downloadStatusJson() {
@@ -228,12 +228,12 @@ function downloadStatusJson() {
   anchor.download = "douban-refugee-statuses.json";
   anchor.click();
   URL.revokeObjectURL(url);
-  setStatus("Downloaded douban-refugee-statuses.json.");
+  setStatus(chrome.i18n.getMessage("downloadedStatusJson"));
 }
 
 scrapeButton.addEventListener("click", async () => {
   scrapeButton.disabled = true;
-  setStatus(`Scraping ${mediaTypeInput.value} pages...`);
+  setStatus(chrome.i18n.getMessage("scrapingPages"));
   try {
     await scrapeHistory();
   } catch (error) {
@@ -256,7 +256,7 @@ downloadButton.addEventListener("click", downloadJson);
 statusScrapeButton.addEventListener("click", async () => {
   statusScrapeButton.disabled = true;
   statusCancelButton.disabled = false;
-  setStatus("Backing up statuses...");
+  setStatus(chrome.i18n.getMessage("backingUp"));
   try {
     await scrapeStatuses();
   } catch (error) {
@@ -281,7 +281,7 @@ statusDownloadButton.addEventListener("click", downloadStatusJson);
 statusCancelButton.addEventListener("click", async () => {
   if (!activeStatusRequestId) return;
   await chrome.storage.local.set({ statusScrapeCancelRequestId: activeStatusRequestId });
-  setStatus("Cancel requested.");
+  setStatus(chrome.i18n.getMessage("cancelRequested"));
 });
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -289,7 +289,7 @@ chrome.runtime.onMessage.addListener((message) => {
   const progress = message.total ? Math.round((message.page / message.total) * 100) : 0;
   statusProgress.style.display = "block";
   statusProgress.value = progress;
-  setStatus(`Page ${message.page}/${message.total}: ${message.status_count} statuses.`);
+  setStatus(chrome.i18n.getMessage("statusPageCount", [String(message.page), String(message.total), String(message.status_count)]));
 });
 
 openButton.addEventListener("click", async () => {
@@ -298,23 +298,34 @@ openButton.addEventListener("click", async () => {
 });
 
 copyCookieButton.addEventListener("click", async () => {
-  cookieStatus.textContent = "Reading…";
+  cookieStatus.textContent = chrome.i18n.getMessage("cookieReading");
   cookieStatus.className = "cookie-note";
   try {
     const cookies = await chrome.cookies.getAll({ domain: ".douban.com" });
     if (cookies.length === 0) {
-      cookieStatus.textContent = "No Douban cookies found — sign in to Douban first.";
+      cookieStatus.textContent = chrome.i18n.getMessage("cookieNoDouban");
       cookieStatus.className = "cookie-note err";
       return;
     }
     const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
     await navigator.clipboard.writeText(cookieString);
-    cookieStatus.textContent = `✓ Copied (${cookies.length} cookies). Paste in the web app.`;
+    cookieStatus.textContent = chrome.i18n.getMessage("cookieCopied", [String(cookies.length)]);
     cookieStatus.className = "cookie-note ok";
     setTimeout(() => { cookieStatus.textContent = ""; }, 5000);
   } catch (error) {
-    cookieStatus.textContent = error instanceof Error ? error.message : "Copy failed.";
+    cookieStatus.textContent = error instanceof Error ? error.message : chrome.i18n.getMessage("cookieCopyFailed");
     cookieStatus.className = "cookie-note err";
+  }
+});
+
+document.querySelectorAll('[data-i18n]').forEach(el => {
+  const msg = chrome.i18n.getMessage(el.getAttribute('data-i18n'));
+  if (msg) {
+    if (el.tagName === 'INPUT' && (el.type === 'button' || el.type === 'submit')) {
+      el.value = msg;
+    } else {
+      el.textContent = msg;
+    }
   }
 });
 

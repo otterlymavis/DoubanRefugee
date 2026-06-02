@@ -9,92 +9,92 @@
   <body>
     <main>
       <header>
-        <p class="eyebrow">History transfer</p>
+        <p class="eyebrow" data-i18n="historyTransfer">History transfer</p>
         <h1>DoubanRefugee</h1>
-        <p class="hint">Browser session in, local files out.</p>
+        <p class="hint" data-i18n="tagline">Browser session in, local files out.</p>
       </header>
 
       <label>
-        Local web app address
+        <span data-i18n="localWebAppAddr">Local web app address</span>
         <input id="webAppUrl" type="url" value="http://localhost:3000">
-        <span class="field-note">Opens the app only. No API.</span>
+        <span class="field-note" data-i18n="localWebAppNote">Opens the app only. No API.</span>
       </label>
 
       <div class="cookie-row">
-        <button id="copyCookieButton" type="button" class="btn-cookie">🍪 Copy Douban Cookie</button>
+        <button id="copyCookieButton" type="button" class="btn-cookie" data-i18n="copyCookieBtn">🍪 Copy Douban Cookie</button>
         <span id="cookieStatus" class="cookie-note"></span>
       </div>
 
       <section class="icon-flow" aria-label="Transfer flow">
         <div class="flow-item">
           <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-2.8 8.5-7 10-4.2-1.5-7-5.6-7-10V6l7-3z"/><path d="M9 12l2 2 4-5"/></svg></span>
-          <b>Scrape</b>
+          <b data-i18n="scrapeTitle">Scrape</b>
         </div>
         <div class="flow-item">
           <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg></span>
-          <b>JSON</b>
+          <b data-i18n="jsonTitle">JSON</b>
         </div>
         <div class="flow-item">
           <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
-          <b>Export</b>
+          <b data-i18n="exportTitle">Export</b>
         </div>
         <div class="flow-item">
           <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></span>
-          <b>Upload</b>
+          <b data-i18n="uploadTitle">Upload</b>
         </div>
       </section>
 
       <label>
-        History page safety limit
+        <span data-i18n="historyPageLimit">History page safety limit</span>
         <input id="maxPages" type="number" min="1" max="200" value="200">
-        <span class="field-note">Reads /collect and /wish.</span>
+        <span class="field-note" data-i18n="historyPageLimitNote">Reads /collect and /wish.</span>
       </label>
 
       <label>
-        Media type
+        <span data-i18n="mediaType">Media type</span>
         <select id="mediaType">
-          <option value="movie">Movie</option>
-          <option value="book">Book</option>
-          <option value="music">Music</option>
+          <option value="movie" data-i18n="movie">Movie</option>
+          <option value="book" data-i18n="book">Book</option>
+          <option value="music" data-i18n="music">Music</option>
         </select>
       </label>
 
       <div class="actions">
-        <button id="scrapeButton" type="button">Scrape whole history</button>
-        <button id="copyButton" type="button" disabled>Copy JSON</button>
-        <button id="downloadButton" type="button" disabled>Download JSON</button>
-        <button id="openButton" type="button">Open local app</button>
+        <button id="scrapeButton" type="button" data-i18n="scrapeBtn">Scrape whole history</button>
+        <button id="copyButton" type="button" disabled data-i18n="copyBtn">Copy JSON</button>
+        <button id="downloadButton" type="button" disabled data-i18n="downloadBtn">Download JSON</button>
+        <button id="openButton" type="button" data-i18n="openAppBtn">Open local app</button>
       </div>
 
       <section class="status-tools">
-        <h2>Status backup</h2>
-        <p class="field-note">Open /statuses, pick pages, export JSON.</p>
+        <h2 data-i18n="statusBackup">Status backup</h2>
+        <p class="field-note" data-i18n="statusNote">Open /statuses, pick pages, export JSON.</p>
         <div class="page-range">
           <label>
-            From page
+            <span data-i18n="fromPage">From page</span>
             <input id="statusStartPage" type="number" min="1" value="1">
           </label>
           <label>
-            To page
+            <span data-i18n="toPage">To page</span>
             <input id="statusEndPage" type="number" min="1" value="1">
           </label>
         </div>
         <div class="actions">
-          <button id="statusScrapeButton" type="button">Backup statuses</button>
-          <button id="statusCopyButton" type="button" disabled>Copy status JSON</button>
-          <button id="statusDownloadButton" type="button" disabled>Download status JSON</button>
-          <button id="statusCancelButton" type="button" disabled>Cancel</button>
+          <button id="statusScrapeButton" type="button" data-i18n="backupStatusesBtn">Backup statuses</button>
+          <button id="statusCopyButton" type="button" disabled data-i18n="copyStatusBtn">Copy status JSON</button>
+          <button id="statusDownloadButton" type="button" disabled data-i18n="downloadStatusBtn">Download status JSON</button>
+          <button id="statusCancelButton" type="button" disabled data-i18n="cancelBtn">Cancel</button>
         </div>
         <progress id="statusProgress" max="100" value="0"></progress>
       </section>
 
       <section class="status">
-        <div id="statusText">Open Douban, choose type, scrape. No passwords.</div>
+        <div id="statusText" data-i18n="statusIdle">Open Douban, choose type, scrape. No passwords.</div>
         <pre id="preview" aria-live="polite"></pre>
       </section>
 
       <footer>
-        <a id="webAppLink" href="http://localhost:3000" target="_blank" rel="noreferrer">Open local web app</a>
+        <a id="webAppLink" href="http://localhost:3000" target="_blank" rel="noreferrer" data-i18n="footerLink">Open local web app</a>
       </footer>
     </main>
     <script src="popup.js"></script>
