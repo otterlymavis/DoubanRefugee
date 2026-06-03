@@ -12,6 +12,3 @@ storage/
 *.pyc
 *.log
 *.tsbuildinfo
-AGENT.md
-CLAUDE.md
-GEMINI.md
