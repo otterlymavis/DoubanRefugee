@@ -20,11 +20,30 @@ export type StatusCard = {
   description?: string;
 };
 
+export type DoubanBackupEntryType =
+  | "status"
+  | "diary"
+  | "review"
+  | "post"
+  | "reply"
+  | "comment"
+  | "album"
+  | "photo"
+  | "doulist"
+  | "profile"
+  | "relationship"
+  | "event"
+  | "note"
+  | "topic"
+  | "unknown";
+
 export type DoubanStatus = {
   source_platform: "douban";
   source_id: string;
   source_url?: string;
+  entry_type?: DoubanBackupEntryType;
   status_type?: string;
+  title?: string;
   author: StatusAuthor;
   created_at?: string;
   activity?: string;
@@ -38,6 +57,7 @@ export type DoubanStatus = {
   like_count?: number;
   reshare_count?: number;
   comment_count?: number;
+  metadata?: Record<string, unknown>;
 };
 
 export type StatusBackupFile = {
@@ -59,9 +79,9 @@ export function saveStatuses(statuses: DoubanStatus[]) {
 
 export function parseStatusJson(value: string): DoubanStatus[] {
   const parsed = JSON.parse(value);
-  const statuses = Array.isArray(parsed) ? parsed : parsed.statuses || parsed.items;
+  const statuses = Array.isArray(parsed) ? parsed : parsed.entries || parsed.statuses || parsed.items;
   if (!Array.isArray(statuses)) {
-    throw new Error("Status JSON must be an array or an object with a statuses array.");
+    throw new Error("Account backup JSON must be an array or an object with an entries/statuses array.");
   }
   return statuses.map(normalizeStatus);
 }
@@ -76,40 +96,50 @@ export function mergeStatuses(existing: DoubanStatus[], incoming: DoubanStatus[]
 
 export function renderStatusMarkdown(statuses: DoubanStatus[], userName = "Douban user"): StatusBackupFile {
   if (statuses.length === 0) {
-    throw new Error("No Douban statuses available for Markdown export.");
+    throw new Error("No Douban account entries available for Markdown export.");
   }
 
   const body = statuses.map(statusToMarkdown).join("\n---\n\n");
   return {
-    filename: `douban-statuses-${slugFor(userName)}-${new Date().toISOString().slice(0, 10)}.md`,
+    filename: `douban-account-backup-${slugFor(userName)}-${new Date().toISOString().slice(0, 10)}.md`,
     mimeType: "text/markdown;charset=utf-8",
-    content: `# Douban Status Backup - ${userName}\n\nExported at ${new Date().toISOString()}.\n\n${body}\n`,
+    content: `# Douban Account Backup - ${userName}\n\nExported at ${new Date().toISOString()}.\n\n${body}\n`,
   };
 }
 
 export function renderStatusBackupJson(statuses: DoubanStatus[]): StatusBackupFile {
   if (statuses.length === 0) {
-    throw new Error("No Douban statuses available for JSON backup.");
+    throw new Error("No Douban account entries available for JSON backup.");
   }
 
   return {
-    filename: "douban-status-backup.json",
+    filename: "douban-account-backup.json",
     mimeType: "application/json;charset=utf-8",
-    content: JSON.stringify({ exported_at: new Date().toISOString(), statuses }, null, 2),
+    content: JSON.stringify({
+      exported_at: new Date().toISOString(),
+      source_profile: {
+        client: "douban-refugee-web",
+        entry_count: statuses.length,
+        entry_types: Array.from(new Set(statuses.map((status) => status.entry_type || "status"))).sort(),
+      },
+      entries: statuses,
+      statuses,
+    }, null, 2),
   };
 }
 
 export function renderStatusNotionCsv(statuses: DoubanStatus[]): StatusBackupFile {
   if (statuses.length === 0) {
-    throw new Error("No Douban statuses available for Notion CSV export.");
+    throw new Error("No Douban account entries available for Notion CSV export.");
   }
 
   return {
-    filename: "notion-douban-statuses.csv",
+    filename: "notion-douban-account-backup.csv",
     mimeType: "text/csv;charset=utf-8",
     content: [
       [
         "Name",
+        "Type",
         "Created At",
         "Author",
         "Status Type",
@@ -124,9 +154,11 @@ export function renderStatusNotionCsv(statuses: DoubanStatus[]): StatusBackupFil
         "Likes",
         "Reshares",
         "Responses",
+        "Metadata",
       ],
       ...statuses.map((status) => [
         statusTitle(status),
+        status.entry_type || "status",
         status.created_at || "",
         status.author.name || "",
         status.status_type || "",
@@ -141,6 +173,7 @@ export function renderStatusNotionCsv(statuses: DoubanStatus[]): StatusBackupFil
         status.like_count ?? "",
         status.reshare_count ?? "",
         status.comment_count ?? "",
+        status.metadata ? JSON.stringify(status.metadata) : "",
       ]),
     ].map((row) => row.map(csvCell).join(",")).join("\n"),
   };
@@ -148,14 +181,16 @@ export function renderStatusNotionCsv(statuses: DoubanStatus[]): StatusBackupFil
 
 function normalizeStatus(status: DoubanStatus): DoubanStatus {
   if (!status.source_id) {
-    throw new Error("Every Douban status needs a source_id.");
+    throw new Error("Every Douban account entry needs a source_id.");
   }
 
   return compactObject({
     source_platform: "douban",
     source_id: String(status.source_id),
     source_url: status.source_url || undefined,
+    entry_type: status.entry_type || "status",
     status_type: status.status_type || undefined,
+    title: status.title || undefined,
     author: {
       name: status.author?.name || "",
       uid: status.author?.uid || undefined,
@@ -173,14 +208,18 @@ function normalizeStatus(status: DoubanStatus): DoubanStatus {
     like_count: numberOrUndefined(status.like_count),
     reshare_count: numberOrUndefined(status.reshare_count),
     comment_count: numberOrUndefined(status.comment_count),
+    metadata: status.metadata || undefined,
   });
 }
 
 function statusToMarkdown(status: DoubanStatus) {
   const lines = [
-    `## ${status.created_at || "Unknown time"} - ${status.author.name || "Unknown author"}`,
+    `## ${status.title || status.created_at || status.source_id}`,
     "",
-    status.source_url ? `[Original status](${status.source_url})` : "",
+    `Type: ${status.entry_type || "status"}`,
+    status.created_at ? `Created: ${status.created_at}` : "",
+    status.author.name ? `Author: ${status.author.name}` : "",
+    status.source_url ? `[Original](${status.source_url})` : "",
     status.activity ? `Activity: ${status.activity}` : "",
     status.rating ? `Rating: ${status.rating}` : "",
     "",
@@ -230,7 +269,7 @@ function statusToMarkdown(status: DoubanStatus) {
 }
 
 function statusTitle(status: DoubanStatus) {
-  const text = status.content || status.card?.title || status.topic?.title || status.source_id;
+  const text = status.title || status.content || status.card?.title || status.topic?.title || status.source_id;
   return text.length > 80 ? `${text.slice(0, 77)}...` : text;
 }
 
@@ -253,7 +292,7 @@ function escapeMarkdown(value: string) {
 }
 
 function sourceKey(status: DoubanStatus) {
-  return `${status.source_platform}:${status.source_id}`;
+  return `${status.source_platform}:${status.entry_type || "status"}:${status.source_id}`;
 }
 
 function compareStatus(a: DoubanStatus, b: DoubanStatus) {

@@ -41,6 +41,9 @@
   "mediaType": {
     "message": "Media type"
   },
+  "allMedia": {
+    "message": "All media"
+  },
   "movie": {
     "message": "Movie"
   },
@@ -63,10 +66,46 @@
     "message": "Open local app"
   },
   "statusBackup": {
-    "message": "Status backup"
+    "message": "Account backup"
   },
   "statusNote": {
-    "message": "Open /statuses, pick pages, export JSON."
+    "message": "Open a Douban profile or section page, pick what to back up, export JSON."
+  },
+  "backupType": {
+    "message": "Backup sections"
+  },
+  "backupAll": {
+    "message": "All account data"
+  },
+  "backupStatuses": {
+    "message": "Statuses"
+  },
+  "backupDiaries": {
+    "message": "Diaries / notes"
+  },
+  "backupReviews": {
+    "message": "Reviews"
+  },
+  "backupPosts": {
+    "message": "Posts / discussions"
+  },
+  "backupReplies": {
+    "message": "Replies"
+  },
+  "backupAlbums": {
+    "message": "Albums / photos"
+  },
+  "backupDoulists": {
+    "message": "Doulists"
+  },
+  "backupProfile": {
+    "message": "Profile / social"
+  },
+  "backupEvents": {
+    "message": "Events"
+  },
+  "backupCurrent": {
+    "message": "Current page"
   },
   "fromPage": {
     "message": "From page"
@@ -75,13 +114,13 @@
     "message": "To page"
   },
   "backupStatusesBtn": {
-    "message": "Backup statuses"
+    "message": "Backup account data"
   },
   "copyStatusBtn": {
-    "message": "Copy status JSON"
+    "message": "Copy backup JSON"
   },
   "downloadStatusBtn": {
-    "message": "Download status JSON"
+    "message": "Download backup JSON"
   },
   "cancelBtn": {
     "message": "Cancel"
@@ -105,13 +144,13 @@
     "message": "Done: $1 completed, $2 wanted.$3"
   },
   "errorOpenStatuses": {
-    "message": "Open a Douban statuses page first, such as https://www.douban.com/people/<id>/statuses."
+    "message": "Open a Douban profile or account section page first, such as https://www.douban.com/people/<id>/"
   },
   "errorStatusScraperNoResponse": {
     "message": "The Douban status scraper did not respond."
   },
   "doneStatuses": {
-    "message": "Done: $1 statuses, $2 page(s).$3"
+    "message": "Done: $1 account entries, $2 page(s).$3"
   },
   "copiedJson": {
     "message": "Copied JSON to clipboard. Paste it into the local app's Import JSON flow."
@@ -120,22 +159,22 @@
     "message": "Downloaded douban-refugee-import.json."
   },
   "copiedStatusJson": {
-    "message": "Copied status JSON to clipboard. Paste it into the local app's Status Backup import."
+    "message": "Copied account backup JSON to clipboard. Paste it into the local app's Account Backup import."
   },
   "downloadedStatusJson": {
-    "message": "Downloaded douban-refugee-statuses.json."
+    "message": "Downloaded douban-refugee-account-backup.json."
   },
   "scrapingPages": {
     "message": "Scraping pages..."
   },
   "backingUp": {
-    "message": "Backing up statuses..."
+    "message": "Backing up account entries..."
   },
   "cancelRequested": {
     "message": "Cancel requested."
   },
   "statusPageCount": {
-    "message": "Page $1/$2: $3 statuses."
+    "message": "Page $1/$2: $3 entries."
   },
   "cookieReading": {
     "message": "Reading…"

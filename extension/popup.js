@@ -1,6 +1,7 @@
 const DEFAULTS = {
-  mediaType: "movie",
+  mediaType: "all",
   maxPages: "200",
+  backupTypes: ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "event"],
   webAppUrl: "http://localhost:3000"
 };
 
@@ -23,6 +24,7 @@ const statusDownloadButton = document.querySelector("#statusDownloadButton");
 const statusCancelButton = document.querySelector("#statusCancelButton");
 const statusProgress = document.querySelector("#statusProgress");
 const statusText = document.querySelector("#statusText");
+const backupTypeInputs = Array.from(document.querySelectorAll("input[name='backupTypes']"));
 const preview = document.querySelector("#preview");
 const webAppLink = document.querySelector("#webAppLink");
 let statusPayload = undefined;
@@ -52,6 +54,8 @@ async function loadSettings() {
   webAppUrlInput.value = stored.webAppUrl || DEFAULTS.webAppUrl;
   maxPagesInput.value = stored.maxPages || DEFAULTS.maxPages;
   mediaTypeInput.value = stored.mediaType || DEFAULTS.mediaType;
+  const selected = new Set(stored.backupTypes || DEFAULTS.backupTypes);
+  backupTypeInputs.forEach((input) => { input.checked = selected.has(input.value); });
   webAppLink.href = normalizeUrl(stored.webAppUrl || DEFAULTS.webAppUrl);
 }
 
@@ -62,6 +66,7 @@ async function saveSettings() {
   await chrome.storage.local.set({
     maxPages,
     mediaType: mediaTypeInput.value,
+    backupTypes: selectedBackupTypes(),
     webAppUrl
   });
   webAppLink.href = webAppUrl;
@@ -104,6 +109,7 @@ async function scrapeHistory() {
       client: "douban-refugee-extension",
       page: response.page,
       scrape: {
+        media_type: response.media_type,
         max_pages: response.max_pages,
         pages: response.pages || [],
         reached_max_pages: Boolean(response.reached_max_pages)
@@ -126,11 +132,11 @@ async function scrapeHistory() {
   });
 }
 
-async function scrapeStatuses() {
+async function scrapeAccountBackup() {
   await saveSettings();
   const tab = await getActiveTab();
 
-  if (!tab.url || !tab.url.includes("douban.com") || !tab.url.includes("/statuses")) {
+  if (!tab.url || !tab.url.includes("douban.com")) {
     throw new Error(chrome.i18n.getMessage("errorOpenStatuses"));
   }
 
@@ -144,7 +150,8 @@ async function scrapeStatuses() {
   statusProgress.value = 0;
 
   const response = await requestExtraction(tab.id, {
-    type: "DOUBAN_REFUGEE_SCRAPE_STATUSES",
+    type: "DOUBAN_REFUGEE_SCRAPE_ACCOUNT_BACKUP",
+    backupTypes: selectedBackupTypes(),
     startPage,
     endPage,
     requestId: activeStatusRequestId
@@ -159,28 +166,37 @@ async function scrapeStatuses() {
     source_profile: {
       client: "douban-refugee-extension",
       page: response.page,
-      status_scrape: {
+      account_backup: {
+        backup_type: response.backup_type,
+        backup_types: response.backup_types || selectedBackupTypes(),
         user_name: response.user_name,
         start_page: response.start_page,
         end_page: response.end_page,
         pages: response.pages || [],
+        errors: response.errors || [],
         cancelled: Boolean(response.cancelled)
       }
     },
-    statuses: response.statuses || []
+    entries: response.entries || [],
+    statuses: response.statuses || response.entries || []
   };
 
-  const hasStatuses = statusPayload.statuses.length > 0;
+  const hasStatuses = statusPayload.entries.length > 0;
   statusCopyButton.disabled = !hasStatuses;
   statusDownloadButton.disabled = !hasStatuses;
   statusProgress.value = 100;
   const cancelNote = response.cancelled ? " (Cancelled)" : "";
-  setStatus(chrome.i18n.getMessage("doneStatuses", [String(statusPayload.statuses.length), String(response.pages?.length || 0), cancelNote]));
+  setStatus(chrome.i18n.getMessage("doneStatuses", [String(statusPayload.entries.length), String(response.pages?.length || 0), cancelNote]));
   showPreview({
     page: response.page,
     scraped_pages: response.pages?.length || 0,
-    statuses: statusPayload.statuses.slice(0, 3)
+    entries: statusPayload.entries.slice(0, 3)
   });
+}
+
+function selectedBackupTypes() {
+  const selected = backupTypeInputs.filter((input) => input.checked).map((input) => input.value);
+  return selected.length > 0 ? selected : DEFAULTS.backupTypes;
 }
 
 async function requestExtraction(tabId, message) {
@@ -225,7 +241,7 @@ function downloadStatusJson() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "douban-refugee-statuses.json";
+  anchor.download = "douban-refugee-account-backup.json";
   anchor.click();
   URL.revokeObjectURL(url);
   setStatus(chrome.i18n.getMessage("downloadedStatusJson"));
@@ -258,7 +274,7 @@ statusScrapeButton.addEventListener("click", async () => {
   statusCancelButton.disabled = false;
   setStatus(chrome.i18n.getMessage("backingUp"));
   try {
-    await scrapeStatuses();
+    await scrapeAccountBackup();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error));
   } finally {
@@ -289,7 +305,7 @@ chrome.runtime.onMessage.addListener((message) => {
   const progress = message.total ? Math.round((message.page / message.total) * 100) : 0;
   statusProgress.style.display = "block";
   statusProgress.value = progress;
-  setStatus(chrome.i18n.getMessage("statusPageCount", [String(message.page), String(message.total), String(message.status_count)]));
+  setStatus(chrome.i18n.getMessage("statusPageCount", [String(message.page), String(message.total), String(message.entry_count ?? message.status_count ?? 0)]));
 });
 
 openButton.addEventListener("click", async () => {

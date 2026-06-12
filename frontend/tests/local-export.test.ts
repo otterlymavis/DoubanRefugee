@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { type CanonicalMedia, mergeItems, parseJsonItems, renderExport } from "../src/lib/local-export";
 import { mergeStatuses, parseStatusJson, renderStatusBackupJson, renderStatusMarkdown, renderStatusNotionCsv } from "../src/lib/status-backup";
+import { scrapeDoubanAccountBackupPage } from "../src/lib/douban-scraper";
 
 const realDoubanItems: CanonicalMedia[] = [
   {
@@ -171,6 +172,7 @@ const statusBackup = parseStatusJson(JSON.stringify({
       source_platform: "douban",
       source_id: "status-1",
       source_url: "https://www.douban.com/people/example/status/1/",
+      entry_type: "status",
       author: { name: "Example User", uid: "example", link: "https://www.douban.com/people/example/" },
       created_at: "2024-04-01 12:30",
       activity: "推荐",
@@ -184,35 +186,86 @@ const statusBackup = parseStatusJson(JSON.stringify({
     },
     {
       source_platform: "douban",
-      source_id: "status-2",
+      source_id: "note-2",
+      source_url: "https://www.douban.com/note/2/",
+      entry_type: "diary",
+      title: "A preserved diary",
       author: { name: "Example User" },
       created_at: "2024-04-02 08:00",
-      content: "A reshared status.",
-      reshared_status: { author: { name: "Original Author" }, content: "Original text." },
+      content: "A preserved diary/note with long-form text.",
+    },
+    {
+      source_platform: "douban",
+      source_id: "album-1",
+      source_url: "https://www.douban.com/photos/album/1/",
+      entry_type: "album",
+      title: "A preserved album",
+      author: { name: "Example User" },
+      content: "Album description.",
+      metadata: { image_count: 12 },
     },
   ],
 }));
 const mergedStatuses = mergeStatuses([statusBackup[0]], statusBackup);
-assert.equal(mergedStatuses.length, 2, "status imports should merge by Douban status id without duplicates");
+assert.equal(mergedStatuses.length, 3, "account backup imports should merge by Douban id and type without duplicates");
 const statusMarkdown = renderStatusMarkdown(mergedStatuses, "Example User");
-assert.match(statusMarkdown.filename, /^douban-statuses-example-user-\d{4}-\d{2}-\d{2}\.md$/);
-assertIncludes(statusMarkdown.content, "Douban Status Backup - Example User");
+assert.match(statusMarkdown.filename, /^douban-account-backup-example-user-\d{4}-\d{2}-\d{2}\.md$/);
+assertIncludes(statusMarkdown.content, "Douban Account Backup - Example User");
 assertIncludes(statusMarkdown.content, "A preserved Douban broadcast");
 assertIncludes(statusMarkdown.content, "Responses:");
-assertIncludes(statusMarkdown.content, "Reshared status:");
+assertIncludes(statusMarkdown.content, "A preserved diary");
 const statusJson = renderStatusBackupJson(mergedStatuses);
-assert.equal(statusJson.filename, "douban-status-backup.json");
-assert.equal(JSON.parse(statusJson.content).statuses.length, 2);
+assert.equal(statusJson.filename, "douban-account-backup.json");
+assert.equal(JSON.parse(statusJson.content).entries.length, 3);
+assert.equal(JSON.parse(statusJson.content).statuses.length, 3);
 const notionStatuses = renderStatusNotionCsv(mergedStatuses);
-assert.equal(notionStatuses.filename, "notion-douban-statuses.csv");
+assert.equal(notionStatuses.filename, "notion-douban-account-backup.csv");
 assert.equal(
   notionStatuses.content.split("\n")[0],
-  "Name,Created At,Author,Status Type,Activity,Content,Source URL,Images,Card,Topic,Reshared Content,Comments,Likes,Reshares,Responses",
+  "Name,Type,Created At,Author,Status Type,Activity,Content,Source URL,Images,Card,Topic,Reshared Content,Comments,Likes,Reshares,Responses,Metadata",
 );
 assertIncludes(notionStatuses.content, "A preserved Douban broadcast");
 assertIncludes(notionStatuses.content, "Friend: Nice backup.");
+assertIncludes(notionStatuses.content, "diary");
 
-console.log("Local export tests passed for media transfer files, Notion CSVs, backup JSON, and Douban status Markdown/JSON backups.");
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (input) => {
+  const url = String(input);
+  const fixtures: Record<string, string> = {
+    discussion: `<div class="topic-list"><ul><li><a href="https://www.douban.com/group/topic/123456/">Preserved discussion post</a><span class="date">2024-05-01</span><p>Post excerpt text.</p></li></ul></div>`,
+    photos: `<ul class="photolst"><li><a href="https://www.douban.com/photos/photo/222/">Photo title</a><img src="https://img.example/photo.jpg" alt="photo"><p>Photo caption.</p></li></ul>`,
+    doulists: `<div class="doulist-item"><a href="https://www.douban.com/doulist/333/">Migration list</a><p>List description.</p></div>`,
+    people: `<h1>Example User</h1><div class="user-intro">Profile bio.</div><img class="userface" src="https://img.example/avatar.jpg">`,
+  };
+  const body = url.includes("discussion")
+    ? fixtures.discussion
+    : url.includes("photos")
+      ? fixtures.photos
+      : url.includes("doulists")
+        ? fixtures.doulists
+        : fixtures.people;
+  return new Response(`<html><body>${body}</body></html>`, { status: 200, headers: { "content-type": "text/html" } });
+};
+Promise.all([
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/discussion?start=0"),
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/photos?start=0"),
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/doulists/all?start=0"),
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/"),
+]).then(([postScrape, photoScrape, doulistScrape, profileScrape]) => {
+  globalThis.fetch = originalFetch;
+  assert.equal(postScrape.entries.length, 1, "account backup scraper should capture discussion posts");
+  assert.equal(postScrape.entries[0].entry_type, "post");
+  assert.equal(postScrape.entries[0].source_id, "123456");
+  assertIncludes(postScrape.entries[0].title || "", "Preserved discussion post");
+  assert.equal(photoScrape.entries[0].entry_type, "photo");
+  assert.equal(photoScrape.entries[0].images?.[0]?.url, "https://img.example/photo.jpg");
+  assert.equal(doulistScrape.entries[0].entry_type, "doulist");
+  assert.equal(doulistScrape.entries[0].source_id, "333");
+  assert.equal(profileScrape.entries[0].entry_type, "profile");
+  assertIncludes(profileScrape.entries[0].content, "Profile bio.");
+
+  console.log("Local export tests passed for media transfer files, Notion CSVs, backup JSON, and Douban whole-account backups.");
+});
 
 function assertIncludes(content: string, expected: string) {
   assert.ok(content.includes(expected), `Expected export to include ${expected}`);

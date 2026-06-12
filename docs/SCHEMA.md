@@ -63,19 +63,26 @@ Optional fields:
 - `tags`
 - `external_ids`
 
-## Status Backup JSON
+## Account Backup JSON
 
-Status backup files use a separate `statuses` array:
+Account backup files preserve non-media Douban account data such as statuses,
+diaries/notes, reviews, posts, replies, albums/photos, doulists, profile/social
+metadata, and events. New files use `entries`; the app still reads legacy
+`statuses` files. The extension and web app can export one section at a time or
+a combined whole-account backup that merges all supported entry types into the
+same `entries` array.
 
 ```json
 {
   "exported_at": "2026-05-28T12:00:00.000Z",
-  "statuses": [
+  "entries": [
     {
       "source_platform": "douban",
       "source_id": "123456789",
       "source_url": "https://www.douban.com/people/example/status/123456789/",
+      "entry_type": "status",
       "status_type": "group/topic",
+      "title": "",
       "author": {
         "name": "Example User",
         "uid": "example",
@@ -101,7 +108,15 @@ Status backup files use a separate `statuses` array:
 }
 ```
 
-The web app can re-import this JSON, merge statuses by `source_id`, and export a
+The web app can also import combined local backup files that include both
+`items` and account-backup `entries`; each array is merged into the matching
+local library.
+
+`entry_type` may be `status`, `diary`, `review`, `post`, `reply`, `comment`,
+`album`, `photo`, `doulist`, `profile`, `relationship`, `event`, `note`,
+`topic`, or `unknown`. Entries may include `metadata.backup_run` with the
+selected sections, page range, user id, and scrape timestamp. The web app can
+re-import this JSON, merge entries by `entry_type/source_id`, and export a
 readable Markdown archive.
 
 ## Notion Exports
@@ -111,8 +126,8 @@ import as a database with columns for title, media type, collection status,
 ratings, dates, creators, countries, review text, tags, Douban URL, poster URL,
 and known external IDs.
 
-The web app can export `notion-douban-statuses.csv`, which Notion can import as
-a status database with columns for title, created time, author, type, activity,
-content, source URL, image URLs, card/topic links, reshared content, comments,
-and interaction counts. Status Markdown exports can also be imported into Notion
-as pages.
+The web app can export `notion-douban-account-backup.csv`, which Notion can
+import as an account archive database with columns for title, entry type,
+created time, author, activity, content, source URL, image URLs, card/topic
+links, reshared content, comments, interaction counts, and JSON metadata.
+Account Markdown exports can also be imported into Notion as pages.

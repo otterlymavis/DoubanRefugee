@@ -53,6 +53,7 @@
       <label>
         <span data-i18n="mediaType">Media type</span>
         <select id="mediaType">
+          <option value="all" data-i18n="allMedia">All media</option>
           <option value="movie" data-i18n="movie">Movie</option>
           <option value="book" data-i18n="book">Book</option>
           <option value="music" data-i18n="music">Music</option>
@@ -67,8 +68,20 @@
       </div>
 
       <section class="status-tools">
-        <h2 data-i18n="statusBackup">Status backup</h2>
-        <p class="field-note" data-i18n="statusNote">Open /statuses, pick pages, export JSON.</p>
+        <h2 data-i18n="statusBackup">Account backup</h2>
+        <p class="field-note" data-i18n="statusNote">Open a Douban profile or section page, pick what to back up, export JSON.</p>
+        <fieldset class="backup-grid">
+          <legend data-i18n="backupType">Backup sections</legend>
+          <label><input type="checkbox" name="backupTypes" value="status" checked> <span data-i18n="backupStatuses">Statuses</span></label>
+          <label><input type="checkbox" name="backupTypes" value="diary" checked> <span data-i18n="backupDiaries">Diaries / notes</span></label>
+          <label><input type="checkbox" name="backupTypes" value="review" checked> <span data-i18n="backupReviews">Reviews</span></label>
+          <label><input type="checkbox" name="backupTypes" value="post" checked> <span data-i18n="backupPosts">Posts / discussions</span></label>
+          <label><input type="checkbox" name="backupTypes" value="reply" checked> <span data-i18n="backupReplies">Replies</span></label>
+          <label><input type="checkbox" name="backupTypes" value="album" checked> <span data-i18n="backupAlbums">Albums / photos</span></label>
+          <label><input type="checkbox" name="backupTypes" value="doulist" checked> <span data-i18n="backupDoulists">Doulists</span></label>
+          <label><input type="checkbox" name="backupTypes" value="profile" checked> <span data-i18n="backupProfile">Profile / social</span></label>
+          <label><input type="checkbox" name="backupTypes" value="event" checked> <span data-i18n="backupEvents">Events</span></label>
+        </fieldset>
         <div class="page-range">
           <label>
             <span data-i18n="fromPage">From page</span>
@@ -80,9 +93,9 @@
           </label>
         </div>
         <div class="actions">
-          <button id="statusScrapeButton" type="button" data-i18n="backupStatusesBtn">Backup statuses</button>
-          <button id="statusCopyButton" type="button" disabled data-i18n="copyStatusBtn">Copy status JSON</button>
-          <button id="statusDownloadButton" type="button" disabled data-i18n="downloadStatusBtn">Download status JSON</button>
+          <button id="statusScrapeButton" type="button" data-i18n="backupStatusesBtn">Backup account data</button>
+          <button id="statusCopyButton" type="button" disabled data-i18n="copyStatusBtn">Copy backup JSON</button>
+          <button id="statusDownloadButton" type="button" disabled data-i18n="downloadStatusBtn">Download backup JSON</button>
           <button id="statusCancelButton" type="button" disabled data-i18n="cancelBtn">Cancel</button>
         </div>
         <progress id="statusProgress" max="100" value="0"></progress>

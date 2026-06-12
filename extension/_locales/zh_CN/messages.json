@@ -3,22 +3,22 @@
     "message": "豆瓣难民数据导出"
   },
   "extensionDesc": {
-    "message": "抓取并导出你自己的豆瓣数据记录到本地文件中。"
+    "message": "将你自己的豆瓣记录抓取并导出到本地文件。"
   },
   "historyTransfer": {
     "message": "历史数据转移"
   },
   "tagline": {
-    "message": "浏览器抓取，本地文件导出。"
+    "message": "浏览器会话进入，本地文件导出。"
   },
   "localWebAppAddr": {
     "message": "本地 Web 应用地址"
   },
   "localWebAppNote": {
-    "message": "仅打开应用，无 API 交互。"
+    "message": "只打开应用，不调用远程 API。"
   },
   "copyCookieBtn": {
-    "message": "🍪 复制豆瓣 Cookie"
+    "message": "复制豆瓣 Cookie"
   },
   "scrapeTitle": {
     "message": "抓取"
@@ -33,13 +33,16 @@
     "message": "上传"
   },
   "historyPageLimit": {
-    "message": "历史页面安全限制"
+    "message": "历史页面安全上限"
   },
   "historyPageLimitNote": {
-    "message": "读取 /collect（看过）和 /wish（想看）。"
+    "message": "读取 /collect 和 /wish。"
   },
   "mediaType": {
     "message": "媒体类型"
+  },
+  "allMedia": {
+    "message": "全部媒体"
   },
   "movie": {
     "message": "电影"
@@ -63,31 +66,67 @@
     "message": "打开本地应用"
   },
   "statusBackup": {
-    "message": "广播备份"
+    "message": "账号备份"
   },
   "statusNote": {
-    "message": "打开 /statuses 页面，选择页码范围，然后导出 JSON。"
+    "message": "打开豆瓣个人主页或分区页面，选择要备份的内容，然后导出 JSON。"
+  },
+  "backupType": {
+    "message": "备份分区"
+  },
+  "backupAll": {
+    "message": "全部账号数据"
+  },
+  "backupStatuses": {
+    "message": "广播"
+  },
+  "backupDiaries": {
+    "message": "日记 / 笔记"
+  },
+  "backupReviews": {
+    "message": "评论"
+  },
+  "backupPosts": {
+    "message": "帖子 / 讨论"
+  },
+  "backupReplies": {
+    "message": "回应"
+  },
+  "backupAlbums": {
+    "message": "相册 / 照片"
+  },
+  "backupDoulists": {
+    "message": "豆列"
+  },
+  "backupProfile": {
+    "message": "资料 / 社交"
+  },
+  "backupEvents": {
+    "message": "活动"
+  },
+  "backupCurrent": {
+    "message": "当前页面"
   },
   "fromPage": {
-    "message": "起始页码"
+    "message": "起始页"
   },
   "toPage": {
-    "message": "结束页码"
+    "message": "结束页"
   },
   "backupStatusesBtn": {
-    "message": "备份广播"
+    "message": "备份账号数据"
   },
   "copyStatusBtn": {
-    "message": "复制广播 JSON"
+    "message": "复制备份 JSON"
   },
   "downloadStatusBtn": {
-    "message": "下载广播 JSON"
+    "message": "下载备份 JSON"
   },
   "cancelBtn": {
     "message": "取消"
   },
   "statusIdle": {
-    "message": "打开豆瓣，选择类型，点击抓取。不需要密码。"
+    "message": "打开豆瓣，选择类型，然后抓取。不需要密码。"
   },
   "footerLink": {
     "message": "打开本地 Web 应用"
@@ -96,55 +135,55 @@
     "message": "未找到活动标签页。"
   },
   "errorOpenHistory": {
-    "message": "请先打开 douban.com 的收藏/历史页面。"
+    "message": "请先打开 douban.com 的收藏或历史页面。"
   },
   "errorScraperNoResponse": {
-    "message": "历史数据抓取器无响应。"
+    "message": "分页历史抓取器没有响应。"
   },
   "doneStatus": {
-    "message": "完成：看过 $1 个，想看 $2 个。$3"
+    "message": "完成：$1 个已完成，$2 个想看。$3"
   },
   "errorOpenStatuses": {
-    "message": "请先打开豆瓣广播页面，例如 https://www.douban.com/people/<id>/statuses"
+    "message": "请先打开豆瓣个人主页或账号分区页面，例如 https://www.douban.com/people/<id>/"
   },
   "errorStatusScraperNoResponse": {
-    "message": "豆瓣广播抓取器无响应。"
+    "message": "豆瓣账号备份抓取器没有响应。"
   },
   "doneStatuses": {
-    "message": "完成：$1 条广播，共 $2 页。$3"
+    "message": "完成：$1 条账号记录，共 $2 页。$3"
   },
   "copiedJson": {
-    "message": "JSON 已复制到剪贴板。请将其粘贴到本地应用导入。"
+    "message": "JSON 已复制到剪贴板。请粘贴到本地应用的导入 JSON 流程。"
   },
   "downloadedJson": {
     "message": "已下载 douban-refugee-import.json。"
   },
   "copiedStatusJson": {
-    "message": "广播 JSON 已复制到剪贴板。请将其粘贴到本地应用导入。"
+    "message": "账号备份 JSON 已复制到剪贴板。请粘贴到本地应用的账号备份导入。"
   },
   "downloadedStatusJson": {
-    "message": "已下载 douban-refugee-statuses.json。"
+    "message": "已下载 douban-refugee-account-backup.json。"
   },
   "scrapingPages": {
     "message": "正在抓取页面..."
   },
   "backingUp": {
-    "message": "正在备份广播..."
+    "message": "正在备份账号记录..."
   },
   "cancelRequested": {
     "message": "已请求取消。"
   },
   "statusPageCount": {
-    "message": "第 $1/$2 页：$3 条广播。"
+    "message": "第 $1/$2 页：$3 条记录。"
   },
   "cookieReading": {
-    "message": "读取中…"
+    "message": "读取中..."
   },
   "cookieNoDouban": {
-    "message": "未找到豆瓣 Cookie —— 请先登录豆瓣。"
+    "message": "未找到豆瓣 Cookie，请先登录豆瓣。"
   },
   "cookieCopied": {
-    "message": "✓ 已复制 ($1 个 Cookie)。请在 Web 应用中粘贴。"
+    "message": "已复制（$1 个 Cookie）。请粘贴到 Web 应用。"
   },
   "cookieCopyFailed": {
     "message": "复制失败。"

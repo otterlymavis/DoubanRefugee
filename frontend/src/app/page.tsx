@@ -39,7 +39,8 @@ import {
   renderExport,
   saveLibrary,
 } from "@/lib/local-export";
-import { doubanPageUrl } from "@/lib/douban-scraper";
+import { doubanAccountBackupPageUrl, doubanPageUrl } from "@/lib/douban-scraper";
+import type { AccountBackupType } from "@/lib/douban-scraper";
 import type { EnrichResult } from "@/lib/douban-scraper";
 import type { SyncResult } from "@/lib/notion-sync";
 import {
@@ -63,6 +64,28 @@ type ExportTargetDef = {
   importUrl?: string;
 };
 
+type ScrapeMediaType = MediaType | "all";
+type AccountBackupSelection = AccountBackupType;
+type AccountBackupSectionResult = {
+  section: AccountBackupSelection;
+  count: number;
+  pages: number;
+  errors: string[];
+};
+
+const accountBackupOptions: Array<{ type: AccountBackupSelection; label: string }> = [
+  { type: "status", label: "Statuses" },
+  { type: "diary", label: "Diaries" },
+  { type: "review", label: "Reviews" },
+  { type: "post", label: "Posts" },
+  { type: "reply", label: "Replies" },
+  { type: "album", label: "Albums" },
+  { type: "doulist", label: "Doulists" },
+  { type: "profile", label: "Profile" },
+  { type: "relationship", label: "Social" },
+  { type: "event", label: "Events" },
+];
+
 const exportTargets: ExportTargetDef[] = [
   { destination: "letterboxd", label: "Letterboxd", subtitle: "watched", mediaType: "movie", icon: Clapperboard, iconClass: "text-emerald-600", importUrl: "https://letterboxd.com/import/" },
   { destination: "letterboxd-watchlist", label: "Watchlist", subtitle: "want to see", mediaType: "movie", icon: Bookmark, iconClass: "text-emerald-500", importUrl: "https://letterboxd.com/watchlist/upload/" },
@@ -85,11 +108,17 @@ export default function Home() {
   const [pasteMode, setPasteMode] = useState<"json" | "html" | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showStatusBackup, setShowStatusBackup] = useState(false);
+  const [accountBackupTypes, setAccountBackupTypes] = useState<AccountBackupSelection[]>(accountBackupOptions.map((option) => option.type));
+  const [accountStartPage, setAccountStartPage] = useState(1);
+  const [accountEndPage, setAccountEndPage] = useState(1);
+  const [accountScrapeRunning, setAccountScrapeRunning] = useState(false);
+  const [accountScrapeProgress, setAccountScrapeProgress] = useState("");
+  const [accountScrapeResults, setAccountScrapeResults] = useState<AccountBackupSectionResult[]>([]);
 
   // Scrape state
   const [scrapeOpen, setScrapeOpen] = useState(false);
   const [scrapeUserId, setScrapeUserId] = useState("");
-  const [scrapeMediaType, setScrapeMediaType] = useState<MediaType>("movie");
+  const [scrapeMediaType, setScrapeMediaType] = useState<ScrapeMediaType>("all");
   const [scrapeWatched, setScrapeWatched] = useState(true);
   const [scrapeWishlist, setScrapeWishlist] = useState(true);
   const [scrapeCookie, setScrapeCookie] = useState("");
@@ -149,9 +178,9 @@ export default function Home() {
   }
 
   function importStatuses(incoming: DoubanStatus[], label: string) {
-    if (incoming.length === 0) { setStatus(`No statuses in ${label}.`); return; }
+    if (incoming.length === 0) { setStatus(`No account entries in ${label}.`); return; }
     const next = mergeStatuses(statuses, incoming);
-    updateStatuses(next, `Imported ${incoming.length} status(es). Total: ${next.length}.`);
+    updateStatuses(next, `Imported ${incoming.length} account entry/entries. Total: ${next.length}.`);
   }
 
   function importDemo() { importItems(demoItems, "demo data"); }
@@ -164,19 +193,86 @@ export default function Home() {
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    try { importItems(parseJsonItems(await file.text()), file.name); }
+    try {
+      importAnyJson(await file.text(), file.name);
+    }
     catch (e) { setStatus(messageFrom(e)); }
     finally { event.target.value = ""; }
   }
 
   function importJsonText() {
-    try { importItems(parseJsonItems(jsonText), "pasted JSON"); setJsonText(""); }
+    try {
+      importAnyJson(jsonText, "pasted JSON");
+      setJsonText("");
+    }
     catch (e) { setStatus(messageFrom(e)); }
   }
 
   function importStatusJsonText() {
     try { importStatuses(parseStatusJson(statusJsonText), "pasted status JSON"); setStatusJsonText(""); }
     catch (e) { setStatus(messageFrom(e)); }
+  }
+
+  async function startAccountBackupScrape() {
+    const userId = scrapeUserId.trim();
+    if (!userId) { setStatus("Enter a Douban user ID first."); return; }
+    const startPage = Math.max(1, Math.floor(accountStartPage || 1));
+    const endPage = Math.max(startPage, Math.floor(accountEndPage || startPage));
+    const backupTypes = accountBackupTypes.length > 0 ? accountBackupTypes : accountBackupOptions.map((option) => option.type);
+    let scraped: DoubanStatus[] = [];
+    const errors: string[] = [];
+    const results = new Map<AccountBackupSelection, AccountBackupSectionResult>();
+
+    setAccountScrapeRunning(true);
+    setAccountScrapeProgress("Starting account backup...");
+    setAccountScrapeResults([]);
+
+    for (const backupType of backupTypes) {
+      const sectionStart = backupType === "profile" ? 1 : startPage;
+      const sectionEnd = backupType === "profile" ? 1 : endPage;
+      results.set(backupType, { section: backupType, count: 0, pages: 0, errors: [] });
+      for (let page = sectionStart; page <= sectionEnd; page += 1) {
+        const label = `${backupType} p${page}`;
+        setAccountScrapeProgress(`Scraping ${label}... (${scraped.length} entries so far)`);
+        try {
+          const params = new URLSearchParams({ url: doubanAccountBackupPageUrl(userId, backupType, page) });
+          if (scrapeCookie) params.set("cookie", scrapeCookie);
+          const res = await fetch(`/api/account-backup?${params}`);
+          const data: { entries?: DoubanStatus[]; error?: string } = await res.json();
+          if (!res.ok) throw new Error(data.error ?? "Account backup scrape failed");
+          scraped = [...scraped, ...(data.entries || [])];
+          const current = results.get(backupType)!;
+          results.set(backupType, { ...current, count: current.count + (data.entries?.length || 0), pages: current.pages + 1 });
+          setAccountScrapeResults(Array.from(results.values()));
+          if (page < sectionEnd) await new Promise((r) => setTimeout(r, 600));
+        } catch (e) {
+          const message = `${backupType} p${page}: ${messageFrom(e)}`;
+          errors.push(message);
+          const current = results.get(backupType)!;
+          results.set(backupType, { ...current, pages: current.pages + 1, errors: [...current.errors, message] });
+          setAccountScrapeResults(Array.from(results.values()));
+          setStatus(`Skipped ${message}`);
+        }
+      }
+    }
+
+    setAccountScrapeProgress("");
+    setAccountScrapeRunning(false);
+    const annotated = scraped.map((entry) => ({
+      ...entry,
+      metadata: {
+        ...(entry.metadata || {}),
+        backup_run: {
+          user_id: userId,
+          selected_sections: backupTypes,
+          start_page: startPage,
+          end_page: endPage,
+          scraped_at: new Date().toISOString(),
+        },
+      },
+    }));
+    const next = mergeStatuses(statuses, annotated);
+    updateStatuses(next, `Backed up ${annotated.length} account entrie(s) from ${backupTypes.length} section(s).${errors.length ? ` ${errors.length} section/page error(s).` : ""}`);
   }
 
   function exportFile(target: ExportTargetDef) {
@@ -221,36 +317,40 @@ export default function Home() {
     setScrapeProgress("Starting…");
     let scraped: CanonicalMedia[] = [];
 
-    for (const section of sections) {
-      let url: string | null = doubanPageUrl(userId, scrapeMediaType, section);
-      let page = 0;
+    const mediaTypes: MediaType[] = scrapeMediaType === "all" ? ["movie", "book", "music"] : [scrapeMediaType];
 
-      while (url) {
-        const label = `${scrapeMediaType} ${section === "collect" ? "watched" : "wishlist"} p${page + 1}`;
-        setScrapeProgress(`Scraping ${label}… (${scraped.length} items so far)`);
+    for (const mediaType of mediaTypes) {
+      for (const section of sections) {
+        let url: string | null = doubanPageUrl(userId, mediaType, section);
+        let page = 0;
 
-        try {
-          const params = new URLSearchParams({ url });
-          if (scrapeCookie) params.set("cookie", scrapeCookie);
-          const res: Response = await fetch(`/api/scrape?${params}`);
-          const data: { items?: CanonicalMedia[]; nextUrl?: string | null; error?: string } = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Scrape failed");
-          scraped = [...scraped, ...(data.items ?? [])];
-          url = data.nextUrl ?? null;
-          page++;
-          if (url) await new Promise((r) => setTimeout(r, 600));
-        } catch (e) {
-          setScrapeProgress("");
-          setScrapeRunning(false);
-          setStatus(`Scrape error: ${messageFrom(e)}`);
-          return;
+        while (url) {
+          const label = `${mediaType} ${section === "collect" ? "watched" : "wishlist"} p${page + 1}`;
+          setScrapeProgress(`Scraping ${label}… (${scraped.length} items so far)`);
+
+          try {
+            const params = new URLSearchParams({ url });
+            if (scrapeCookie) params.set("cookie", scrapeCookie);
+            const res: Response = await fetch(`/api/scrape?${params}`);
+            const data: { items?: CanonicalMedia[]; nextUrl?: string | null; error?: string } = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Scrape failed");
+            scraped = [...scraped, ...(data.items ?? [])];
+            url = data.nextUrl ?? null;
+            page++;
+            if (url) await new Promise((r) => setTimeout(r, 600));
+          } catch (e) {
+            setScrapeProgress("");
+            setScrapeRunning(false);
+            setStatus(`Scrape error: ${messageFrom(e)}`);
+            return;
+          }
         }
       }
     }
 
     setScrapeProgress("");
     setScrapeRunning(false);
-    importItems(scraped, `Douban scrape for ${userId}`);
+    importItems(scraped, `Douban ${scrapeMediaType === "all" ? "all-media" : scrapeMediaType} scrape for ${userId}`);
   }
 
   async function enrichLibrary() {
@@ -331,10 +431,46 @@ export default function Home() {
   }
 
   function clearLibrary() { updateLibrary([], "Library cleared."); setShowLibrary(false); }
-  function clearStatuses() { updateStatuses([], "Status backup cleared."); }
+  function clearStatuses() { updateStatuses([], "Account backup cleared."); }
+
+  function importAnyJson(text: string, label: string) {
+    const parsed = JSON.parse(text) as { items?: unknown; entries?: unknown; statuses?: unknown };
+    const hasItems = !Array.isArray(parsed) && Array.isArray(parsed.items);
+    const hasEntries = !Array.isArray(parsed) && (Array.isArray(parsed.entries) || Array.isArray(parsed.statuses));
+
+    if (hasItems) {
+      const incomingItems = parseJsonItems(text);
+      const nextItems = mergeItems(items, incomingItems);
+      saveLibrary(nextItems);
+      setItems(nextItems);
+    }
+
+    if (hasEntries) {
+      const incomingStatuses = parseStatusJson(text);
+      const nextStatuses = mergeStatuses(statuses, incomingStatuses);
+      saveStatuses(nextStatuses);
+      setStatuses(nextStatuses);
+    }
+
+    if (hasItems || hasEntries) {
+      setStatus([
+        hasItems ? `media library: ${items.length} -> ${mergeItems(items, parseJsonItems(text)).length}` : "",
+        hasEntries ? `account backup: ${statuses.length} -> ${mergeStatuses(statuses, parseStatusJson(text)).length}` : "",
+      ].filter(Boolean).join("; "));
+      return;
+    }
+
+    importItems(parseJsonItems(text), label);
+  }
 
   function togglePaste(mode: "json" | "html") {
     setPasteMode((prev) => (prev === mode ? null : mode));
+  }
+
+  function toggleAccountBackupType(type: AccountBackupSelection) {
+    setAccountBackupTypes((current) => (
+      current.includes(type) ? current.filter((item) => item !== type) : [...current, type]
+    ));
   }
 
   return (
@@ -435,7 +571,7 @@ export default function Home() {
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Media type</label>
                 <div className="flex gap-1.5">
-                  {([["movie", "🎬", "Movies"], ["book", "📚", "Books"], ["music", "🎵", "Music"]] as const).map(([type, emoji, label]) => (
+                  {([["all", "All"], ["movie", "Movies"], ["book", "Books"], ["music", "Music"]] as const).map(([type, label]) => (
                     <button
                       key={type}
                       onClick={() => setScrapeMediaType(type)}
@@ -445,7 +581,7 @@ export default function Home() {
                           : "border-border bg-background hover:bg-muted"
                       }`}
                     >
-                      {emoji} {label}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -747,14 +883,14 @@ export default function Home() {
         )}
 
 
-        {/* Status Backup (collapsible) */}
+        {/* Account Backup (collapsible) */}
         <section>
           <button
             onClick={() => setShowStatusBackup((v) => !v)}
             className="flex w-full items-center gap-2 rounded-2xl border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50"
           >
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
-            <span>Status Backup</span>
+            <span>Account Backup</span>
             {statuses.length > 0 && (
               <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
                 {statuses.length}
@@ -767,11 +903,110 @@ export default function Home() {
 
           {showStatusBackup && (
             <div className="mt-2 space-y-3 rounded-2xl border bg-card p-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Douban User ID</label>
+                <input
+                  className="w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+                  placeholder="e.g. otterlymavis"
+                  value={scrapeUserId}
+                  onChange={(e) => setScrapeUserId(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <div>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Account sections</label>
+                    <button
+                      type="button"
+                      onClick={() => setAccountBackupTypes(accountBackupOptions.map((option) => option.type))}
+                      className="rounded-lg px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/10"
+                    >
+                      Whole account
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                    {accountBackupOptions.map((option) => (
+                      <label
+                        key={option.type}
+                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+                          accountBackupTypes.includes(option.type)
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <input
+                          checked={accountBackupTypes.includes(option.type)}
+                          className="h-3.5 w-3.5"
+                          onChange={() => toggleAccountBackupType(option.type)}
+                          type="checkbox"
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">From</label>
+                  <input
+                    className="w-20 rounded-xl border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+                    min={1}
+                    type="number"
+                    value={accountStartPage}
+                    onChange={(e) => setAccountStartPage(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">To</label>
+                  <input
+                    className="w-20 rounded-xl border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+                    min={1}
+                    type="number"
+                    value={accountEndPage}
+                    onChange={(e) => setAccountEndPage(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              {accountScrapeProgress && (
+                <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                  {accountScrapeProgress}
+                </div>
+              )}
+              {accountScrapeResults.length > 0 && (
+                <div className="grid grid-cols-2 gap-1.5 rounded-xl border bg-background/60 p-2 sm:grid-cols-3">
+                  {accountScrapeResults.map((result) => (
+                    <div key={result.section} className="rounded-lg bg-muted/50 px-2 py-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium capitalize">{result.section}</span>
+                        <span className={result.errors.length ? "text-destructive" : "text-muted-foreground"}>
+                          {result.count}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        {result.pages} page(s){result.errors.length ? ` / ${result.errors.length} error(s)` : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button onClick={startAccountBackupScrape} disabled={accountScrapeRunning || !scrapeUserId.trim()} className="w-full gap-2">
+                {accountScrapeRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                {accountScrapeRunning ? "Backing up..." : "Backup Selected Account Data"}
+              </Button>
+              <details className="rounded-xl border bg-muted/30 px-3 py-2">
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Session cookie for private posts</summary>
+                <textarea
+                  className="mt-2 min-h-[70px] w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
+                  placeholder="Paste your Douban cookie string here..."
+                  value={scrapeCookie}
+                  onChange={(e) => setScrapeCookie(e.target.value)}
+                />
+              </details>
               <textarea
                 className="min-h-[80px] w-full rounded-xl border bg-background px-3 py-2 font-mono text-xs outline-none ring-ring focus:ring-2"
                 value={statusJsonText}
                 onChange={(e) => setStatusJsonText(e.target.value)}
-                placeholder='{"statuses":[...]} from the extension'
+                placeholder='{"entries":[...]} from the extension'
               />
               <div className="flex flex-wrap gap-2">
                 <Button onClick={importStatusJsonText} disabled={!statusJsonText.trim()} variant="secondary" size="sm">
@@ -801,14 +1036,15 @@ export default function Home() {
                   {statuses.slice(0, 5).map((item) => (
                     <div key={item.source_id} className="rounded-xl border bg-background/60 p-3">
                       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium">{item.author.name}</span>
+                        <span className="font-medium">{item.entry_type || "status"} / {item.author.name || item.title || item.source_id}</span>
                         <span>{item.created_at || ""}</span>
                       </div>
+                      {item.title && <p className="mt-1 text-sm font-medium leading-relaxed">{item.title}</p>}
                       <p className="mt-1 line-clamp-2 text-sm leading-relaxed">{item.content}</p>
                     </div>
                   ))}
                   {statuses.length > 5 && (
-                    <p className="text-center text-xs text-muted-foreground">+{statuses.length - 5} more statuses</p>
+                    <p className="text-center text-xs text-muted-foreground">+{statuses.length - 5} more entries</p>
                   )}
                 </div>
               )}

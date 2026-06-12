@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, createElement, useContext, useEffect, useState, ReactNode } from "react";
 
 type Language = "en" | "zh";
 
@@ -182,11 +182,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return text;
   };
 
-  return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return createElement(I18nContext.Provider, { value: { lang, setLang, t } }, children);
 }
 
 export function useTranslation() {

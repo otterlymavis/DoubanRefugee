@@ -379,6 +379,28 @@ async function scrapeSection(root, limit, seenUrls, bySource, pages, mediaType) 
 }
 
 async function scrapeDoubanHistory({ mediaType, maxPages }) {
+  if (mediaType === "all") {
+    const bySource = new Map();
+    const pages = [];
+    let reachedMaxPages = false;
+    let max_pages = normalizePageLimit(maxPages);
+    for (const type of ["movie", "book", "music"]) {
+      const result = await scrapeDoubanHistory({ mediaType: type, maxPages });
+      for (const item of result.items) bySource.set(sourceKey(item), item);
+      pages.push(...result.pages.map((page) => ({ ...page, media_type: type })));
+      reachedMaxPages = reachedMaxPages || result.reached_max_pages;
+      max_pages = result.max_pages;
+      await delay(PAGE_DELAY_MS);
+    }
+    return {
+      items: Array.from(bySource.values()),
+      pages,
+      reached_max_pages: reachedMaxPages,
+      max_pages,
+      media_type: "all",
+    };
+  }
+
   const limit = normalizePageLimit(maxPages);
   const seenUrls = new Set();
   const bySource = new Map();
@@ -558,10 +580,44 @@ function userNameFromStatusPage(documentLike = document, pageUrl = window.locati
   return compact(documentLike.querySelector("h1, .info h1")?.textContent || "") || pageUrl.match(/\/people\/([^/]+)/)?.[1] || "Douban user";
 }
 
+function pageOwnerId(url = window.location.href) {
+  try {
+    const parsed = new URL(url);
+    const people = parsed.pathname.match(/\/people\/([^/]+)/)?.[1];
+    if (people) return people;
+    return compact(document.querySelector("a[href*='/people/']")?.href?.match(/\/people\/([^/]+)/)?.[1] || "");
+  } catch {
+    return "";
+  }
+}
+
 function statusPageUrl(pageNumber, currentUrl = window.location.href) {
   const url = new URL(currentUrl);
   url.searchParams.set("p", String(pageNumber));
   return url.toString();
+}
+
+function accountBackupStartUrl(backupType, pageNumber, currentUrl = window.location.href) {
+  if (backupType === "current") return currentUrl;
+  const userId = pageOwnerId(currentUrl);
+  if (!userId) return currentUrl;
+  const start = Math.max(0, (pageNumber - 1) * 10);
+  if (backupType === "profile") return `https://www.douban.com/people/${encodeURIComponent(userId)}/`;
+  if (backupType === "status") {
+    return statusPageUrl(pageNumber, currentUrl.includes("/statuses") ? currentUrl : `https://www.douban.com/people/${encodeURIComponent(userId)}/statuses`);
+  }
+
+  const sectionPath = {
+    diary: "notes",
+    review: "reviews",
+    post: "discussion",
+    reply: "comments",
+    album: "photos",
+    doulist: "doulists/all",
+    relationship: "contacts",
+    event: "events",
+  }[backupType] || "";
+  return sectionPath ? `https://www.douban.com/people/${encodeURIComponent(userId)}/${sectionPath}?start=${start}` : currentUrl;
 }
 
 function statusPageNumber(url = window.location.href) {
@@ -580,7 +636,7 @@ async function scrapeDoubanStatuses({ startPage, endPage, requestId }) {
   let cancelled = false;
 
   for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
-    const pageUrl = statusPageUrl(pageNumber);
+    const pageUrl = accountBackupStartUrl("status", pageNumber);
     const documentLike = pageUrl === window.location.href ? document : await fetchDoubanDocument(pageUrl);
     const statuses = extractDoubanStatuses(documentLike, pageUrl);
     for (const status of statuses) bySource.set(status.source_id, status);
@@ -609,6 +665,251 @@ async function scrapeDoubanStatuses({ startPage, endPage, requestId }) {
     user_name: userNameFromStatusPage(),
     start_page: start,
     end_page: end,
+  };
+}
+
+function backupEntryIdFromUrl(url, fallbackPrefix = "entry") {
+  const absolute = absoluteUrl(url, window.location.href);
+  const match = absolute.match(/\/(?:status|statuses|note|review|topic|album|photos|doulist|event|people)\/([^/?#]+)/) || absolute.match(/\/([^/?#]+)\/?$/);
+  return match ? match[1] : `${fallbackPrefix}-${Math.random().toString(36).slice(2)}`;
+}
+
+function detectBackupTypeFromUrl(url = window.location.href) {
+  if (/\/people\/[^/]+\/?$/.test(url)) return "profile";
+  if (/\/statuses?(?:\/|\?|$)/.test(url)) return "status";
+  if (/\/notes?(?:\/|\?|$)|\/note\/\d+/.test(url)) return "diary";
+  if (/\/reviews?(?:\/|\?|$)|\/review\/\d+/.test(url)) return "review";
+  if (/\/discussion(?:\/|\?|$)|\/group\/topic\/\d+/.test(url)) return "post";
+  if (/\/comments?(?:\/|\?|$)/.test(url)) return "reply";
+  if (/\/photos?(?:\/|\?|$)|\/album\/\d+|\/photos\/photo\/\d+/.test(url)) return "photo";
+  if (/\/doulists?(?:\/|\?|$)|\/doulist\/\d+/.test(url)) return "doulist";
+  if (/\/contacts?(?:\/|\?|$)|\/rev_contacts(?:\/|\?|$)/.test(url)) return "relationship";
+  if (/\/events?(?:\/|\?|$)|\/event\/\d+/.test(url)) return "event";
+  return "unknown";
+}
+
+function normalizeBackupEntryType(detected, backupType) {
+  if (backupType === "reply") return "reply";
+  if (backupType === "album") return detected === "photo" ? "photo" : "album";
+  if (detected === "unknown" || detected === "profile") return backupType;
+  return detected;
+}
+
+function backupLinkPatterns(backupType) {
+  return {
+    diary: ["/note/"],
+    review: ["/review/"],
+    post: ["/group/topic/"],
+    reply: ["/group/topic/", "/review/", "/note/", "/subject/"],
+    album: ["/album/", "/photos/photo/"],
+    doulist: ["/doulist/"],
+    relationship: ["/people/"],
+    event: ["/event/"],
+    unknown: ["/note/", "/review/", "/group/topic/", "/album/", "/photos/photo/", "/doulist/", "/event/", "/people/"],
+  }[backupType] || ["/note/", "/review/", "/group/topic/", "/album/", "/photos/photo/", "/doulist/", "/event/", "/people/"];
+}
+
+function metadataForBackupRoot(root, entryType, pageUrl) {
+  return {
+    section: entryType,
+    image_count: root?.querySelectorAll?.("img")?.length || 0,
+    links: Array.from(root?.querySelectorAll?.("a[href]") || [])
+      .map((anchor) => absoluteUrl(anchor.getAttribute("href") || anchor.href || "", pageUrl))
+      .slice(0, 20),
+  };
+}
+
+function extractProfileBackupEntry(documentLike = document, pageUrl = window.location.href) {
+  const userId = pageUrl.match(/\/people\/([^/]+)/)?.[1] || pageOwnerId(pageUrl) || "profile";
+  const title = compact(documentLike.querySelector("h1, .info h1, .user-info h1")?.textContent || documentLike.title || userId);
+  const avatar = documentLike.querySelector(".userface img, .pic img, img.userface, img[alt]")?.getAttribute("src") || "";
+  const intro = compact(documentLike.querySelector(".user-intro, .intro, #display")?.textContent || "");
+  const signature = compact(documentLike.querySelector(".signature, .user-info .pl, .info .pl")?.textContent || "");
+  return {
+    source_platform: "douban",
+    source_id: userId,
+    source_url: pageUrl,
+    entry_type: "profile",
+    title,
+    author: { name: title, uid: userId, link: pageUrl },
+    content: [intro, signature].filter(Boolean).join("\n\n"),
+    images: avatar ? [{ url: absoluteUrl(avatar, pageUrl), alt: `${title} avatar` }] : [],
+    comments: [],
+    metadata: metadataForBackupRoot(documentLike, "profile", pageUrl),
+  };
+}
+
+function extractDetailBackupEntry(documentLike = document, pageUrl = window.location.href, backupType = detectBackupTypeFromUrl(pageUrl)) {
+  const selectors = {
+    diary: ".note, #link-report, .article, main",
+    review: ".review-content, #link-report, .article, main",
+    post: ".topic-content, #link-report, .article, main",
+    album: ".album, .photolst, #link-report, .article, main",
+    doulist: ".doulist, .doulist-list, #link-report, .article, main",
+    event: ".event, #link-report, .article, main",
+    unknown: "#content, .article, main",
+  };
+  const title = firstText(documentLike, ["h1", "title"]);
+  const contentRoot = documentLike.querySelector(selectors[backupType] || selectors.unknown);
+  const content = compact(contentRoot?.textContent || "");
+  const hasDetailUrl = /\/(?:note|review|topic|album|photos\/photo|doulist|event)\/\d+/.test(pageUrl);
+  if (!hasDetailUrl || (!title && !content)) return undefined;
+  const author = authorFromElement(documentLike.querySelector(".author a[href*='/people/'], .user-info a[href*='/people/'], a[href*='/people/']"));
+  const timeElement = documentLike.querySelector(".pub-date, .created_at, .main-meta, .topic-doc .color-green, .review-meta");
+  return {
+    source_platform: "douban",
+    source_id: backupEntryIdFromUrl(pageUrl, backupType),
+    source_url: pageUrl,
+    entry_type: normalizeBackupEntryType(detectBackupTypeFromUrl(pageUrl), backupType),
+    title,
+    author,
+    created_at: compact(timeElement?.getAttribute("title") || timeElement?.textContent || ""),
+    content,
+    images: Array.from(documentLike.querySelectorAll("#link-report img, .article img, main img"))
+      .map((image) => ({ url: absoluteUrl(image.getAttribute("src") || image.getAttribute("data-original") || "", pageUrl), alt: image.getAttribute("alt") || "image" }))
+      .filter((image) => image.url),
+    comments: extractVisibleComments(documentLike),
+    comment_count: parseCountNear(documentLike, [/回应\(?(\d+)\)?/, /评论\(?(\d+)\)?/, /comment\(?(\d+)\)?/i]),
+    metadata: metadataForBackupRoot(contentRoot || documentLike, backupType, pageUrl),
+  };
+}
+
+function extractListBackupEntries(documentLike = document, pageUrl = window.location.href, backupType = detectBackupTypeFromUrl(pageUrl)) {
+  if (backupType === "profile") return [extractProfileBackupEntry(documentLike, pageUrl)];
+  if (backupType === "status") return extractDoubanStatuses(documentLike, pageUrl);
+  const linkPatterns = backupLinkPatterns(backupType);
+  const anchors = Array.from(documentLike.querySelectorAll("a[href]"))
+    .filter((anchor) => linkPatterns.some((pattern) => (anchor.getAttribute("href") || anchor.href || "").includes(pattern)));
+  const bySource = new Map();
+
+  for (const anchor of anchors) {
+    const href = absoluteUrl(anchor.getAttribute("href") || anchor.href, pageUrl);
+    const entryType = normalizeBackupEntryType(detectBackupTypeFromUrl(href), backupType);
+    const root = anchor.closest(".note-item, .review-item, .topic-list li, .olt tr, .item, .albumlst li, .photolst li, .doulist-item, .events-list li, .obu, li, tr, .article") || anchor.parentElement;
+    const title = compact(anchor.textContent || "");
+    const content = compact(root?.querySelector?.(".abstract, .short-content, .content, .reply-doc, p")?.textContent || root?.textContent || title);
+    const author = authorFromElement(root?.querySelector?.("a[href*='/people/']"));
+    const timeElement = root?.querySelector?.(".date, .time, .pub-date, .created_at, .color-green");
+    const entry = {
+      source_platform: "douban",
+      source_id: backupEntryIdFromUrl(href, entryType),
+      source_url: href,
+      entry_type: entryType,
+      title,
+      author,
+      created_at: compact(timeElement?.getAttribute("title") || timeElement?.textContent || ""),
+      content,
+      images: Array.from(root?.querySelectorAll?.("img") || [])
+        .map((image) => ({ url: absoluteUrl(image.getAttribute("src") || image.getAttribute("data-original") || "", pageUrl), alt: image.getAttribute("alt") || "image" }))
+        .filter((image) => image.url),
+      comment_count: parseCountNear(root || anchor, [/回应\(?(\d+)\)?/, /评论\(?(\d+)\)?/, /comment\(?(\d+)\)?/i]),
+      metadata: metadataForBackupRoot(root, entryType, pageUrl),
+    };
+    if (entry.source_id && (entry.title || entry.content)) bySource.set(`${entry.entry_type}:${entry.source_id}`, entry);
+  }
+
+  const detail = extractDetailBackupEntry(documentLike, pageUrl, backupType);
+  if (detail) bySource.set(`${detail.entry_type}:${detail.source_id}`, detail);
+  return Array.from(bySource.values());
+}
+
+async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, startPage, endPage, requestId }) {
+  const selectedTypes = Array.isArray(backupTypes) && backupTypes.length ? backupTypes : (backupType === "all" ? ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "relationship", "event"] : [backupType]);
+
+  if (selectedTypes.length > 1) {
+    const bySource = new Map();
+    const pages = [];
+    const errors = [];
+    let cancelled = false;
+    for (const type of selectedTypes) {
+      try {
+        const result = await scrapeDoubanAccountBackup({ backupType: type, startPage, endPage, requestId });
+        for (const entry of result.entries || result.statuses || []) {
+          const typedEntry = {
+            ...entry,
+            entry_type: entry.entry_type || type,
+            metadata: {
+              ...(entry.metadata || {}),
+              backup_run: {
+                selected_sections: selectedTypes,
+                start_page: startPage,
+                end_page: endPage,
+                scraped_at: new Date().toISOString(),
+              },
+            },
+          };
+          bySource.set(`${typedEntry.entry_type}:${typedEntry.source_id}`, typedEntry);
+        }
+        pages.push(...(result.pages || []).map((page) => ({ ...page, backup_type: type })));
+        cancelled = cancelled || Boolean(result.cancelled);
+      } catch (error) {
+        errors.push({ backup_type: type, error: error instanceof Error ? error.message : String(error) });
+      }
+      if (cancelled) break;
+      await delay(PAGE_DELAY_MS);
+    }
+    const entries = Array.from(bySource.values());
+    return {
+      entries,
+      statuses: entries,
+      pages,
+      cancelled,
+      user_name: userNameFromStatusPage(),
+      start_page: Math.max(1, Math.floor(Number(startPage) || 1)),
+      end_page: Math.max(1, Math.floor(Number(endPage) || Number(startPage) || 1)),
+      backup_type: "all",
+      backup_types: selectedTypes,
+      errors,
+    };
+  }
+
+  if (backupType === "status") {
+    const result = await scrapeDoubanStatuses({ startPage, endPage, requestId });
+    return { ...result, entries: result.statuses, backup_type: "status" };
+  }
+
+  const start = Math.max(1, Math.floor(Number(startPage) || 1));
+  const end = backupType === "current" || backupType === "profile" ? start : Math.max(start, Math.floor(Number(endPage) || start));
+  const bySource = new Map();
+  const pages = [];
+  let cancelled = false;
+  let nextUrl = accountBackupStartUrl(backupType, start);
+
+  for (let pageNumber = start; pageNumber <= end && nextUrl; pageNumber += 1) {
+    const documentLike = nextUrl === window.location.href ? document : await fetchDoubanDocument(nextUrl);
+    const entries = extractListBackupEntries(documentLike, nextUrl, backupType);
+    for (const entry of entries) bySource.set(`${entry.entry_type}:${entry.source_id}`, entry);
+    pages.push({ page: pageNumber, url: nextUrl, title: documentLike.title, entry_count: entries.length });
+
+    chrome.runtime.sendMessage({
+      type: "DOUBAN_REFUGEE_STATUS_PROGRESS",
+      requestId,
+      page: pageNumber - start + 1,
+      total: end - start + 1,
+      entry_count: entries.length,
+    }).catch(() => {});
+
+    const stop = await chrome.storage.local.get({ statusScrapeCancelRequestId: "" });
+    if (stop.statusScrapeCancelRequestId === requestId) {
+      cancelled = true;
+      break;
+    }
+
+    const discoveredNextUrl = findNextPageUrl(documentLike, nextUrl);
+    nextUrl = backupType === "current" ? "" : discoveredNextUrl;
+    if (nextUrl && pageNumber < end) await delay(PAGE_DELAY_MS);
+  }
+
+  const entries = Array.from(bySource.values());
+  return {
+    entries,
+    statuses: entries,
+    pages,
+    cancelled,
+    user_name: userNameFromStatusPage(),
+    start_page: start,
+    end_page: end,
+    backup_type: backupType,
   };
 }
 
@@ -645,8 +946,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return;
       }
 
-      if (message.type === "DOUBAN_REFUGEE_SCRAPE_STATUSES") {
-        const result = await scrapeDoubanStatuses(message);
+      if (message.type === "DOUBAN_REFUGEE_SCRAPE_STATUSES" || message.type === "DOUBAN_REFUGEE_SCRAPE_ACCOUNT_BACKUP") {
+        const result = await scrapeDoubanAccountBackup(message);
         sendResponse({
           ok: true,
           ...result,
