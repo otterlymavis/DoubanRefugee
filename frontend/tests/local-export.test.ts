@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { type CanonicalMedia, mergeItems, parseJsonItems, renderExport } from "../src/lib/local-export";
 import { mergeStatuses, parseStatusJson, renderStatusBackupJson, renderStatusMarkdown, renderStatusNotionCsv } from "../src/lib/status-backup";
-import { scrapeDoubanAccountBackupPage } from "../src/lib/douban-scraper";
+import { doubanAccountBackupPageUrls, scrapeDoubanAccountBackupPage } from "../src/lib/douban-scraper";
 
 const realDoubanItems: CanonicalMedia[] = [
   {
@@ -183,6 +183,19 @@ const statusBackup = parseStatusJson(JSON.stringify({
       like_count: 2,
       reshare_count: 1,
       comment_count: 1,
+      metadata: {
+        backup_run: {
+          user_id: "example",
+          selected_sections: ["status", "relationship"],
+          start_page: 1,
+          end_page: 1,
+          scraped_pages: [
+            { section: "status", page: 1, url: "https://www.douban.com/people/example/statuses?p=1", count: 1 },
+          ],
+          errors: ["event p1: HTTP 403"],
+          scraped_at: "2026-06-15T10:00:00.000Z",
+        },
+      },
     },
     {
       source_platform: "douban",
@@ -216,8 +229,11 @@ assertIncludes(statusMarkdown.content, "Responses:");
 assertIncludes(statusMarkdown.content, "A preserved diary");
 const statusJson = renderStatusBackupJson(mergedStatuses);
 assert.equal(statusJson.filename, "douban-account-backup.json");
-assert.equal(JSON.parse(statusJson.content).entries.length, 3);
-assert.equal(JSON.parse(statusJson.content).statuses.length, 3);
+const parsedStatusJson = JSON.parse(statusJson.content);
+assert.equal(parsedStatusJson.entries.length, 3);
+assert.equal(parsedStatusJson.statuses.length, 3);
+assert.equal(parsedStatusJson.source_profile.scraped_pages.length, 1);
+assert.deepEqual(parsedStatusJson.source_profile.errors, ["event p1: HTTP 403"]);
 const notionStatuses = renderStatusNotionCsv(mergedStatuses);
 assert.equal(notionStatuses.filename, "notion-douban-account-backup.csv");
 assert.equal(
@@ -229,10 +245,18 @@ assertIncludes(notionStatuses.content, "Friend: Nice backup.");
 assertIncludes(notionStatuses.content, "diary");
 
 const originalFetch = globalThis.fetch;
+assert.deepEqual(
+  doubanAccountBackupPageUrls("example", "relationship", 2),
+  [
+    "https://www.douban.com/people/example/contacts?start=10",
+    "https://www.douban.com/people/example/rev_contacts?start=10",
+  ],
+  "relationship backup should include following and follower pages",
+);
 globalThis.fetch = async (input) => {
   const url = String(input);
   const fixtures: Record<string, string> = {
-    discussion: `<div class="topic-list"><ul><li><a href="https://www.douban.com/group/topic/123456/">Preserved discussion post</a><span class="date">2024-05-01</span><p>Post excerpt text.</p></li></ul></div>`,
+    discussion: `<div class="topic-list"><ul><li><a href="https://www.douban.com/group/topic/123456/">Preserved discussion post</a><span class="date">2024-05-01</span><p>Post excerpt text.</p><div class="comment-item"><a class="author" href="https://www.douban.com/people/friend/">Friend</a><p>Visible discussion reply.</p></div></li></ul></div>`,
     photos: `<ul class="photolst"><li><a href="https://www.douban.com/photos/photo/222/">Photo title</a><img src="https://img.example/photo.jpg" alt="photo"><p>Photo caption.</p></li></ul>`,
     doulists: `<div class="doulist-item"><a href="https://www.douban.com/doulist/333/">Migration list</a><p>List description.</p></div>`,
     people: `<h1>Example User</h1><div class="user-intro">Profile bio.</div><img class="userface" src="https://img.example/avatar.jpg">`,
@@ -257,6 +281,7 @@ Promise.all([
   assert.equal(postScrape.entries[0].entry_type, "post");
   assert.equal(postScrape.entries[0].source_id, "123456");
   assertIncludes(postScrape.entries[0].title || "", "Preserved discussion post");
+  assert.equal(postScrape.entries[0].comments?.[0]?.content, "Visible discussion reply.");
   assert.equal(photoScrape.entries[0].entry_type, "photo");
   assert.equal(photoScrape.entries[0].images?.[0]?.url, "https://img.example/photo.jpg");
   assert.equal(doulistScrape.entries[0].entry_type, "doulist");

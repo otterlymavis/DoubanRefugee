@@ -39,7 +39,7 @@ import {
   renderExport,
   saveLibrary,
 } from "@/lib/local-export";
-import { doubanAccountBackupPageUrl, doubanPageUrl } from "@/lib/douban-scraper";
+import { doubanAccountBackupPageUrls, doubanPageUrl } from "@/lib/douban-scraper";
 import type { AccountBackupType } from "@/lib/douban-scraper";
 import type { EnrichResult } from "@/lib/douban-scraper";
 import type { SyncResult } from "@/lib/notion-sync";
@@ -71,6 +71,12 @@ type AccountBackupSectionResult = {
   count: number;
   pages: number;
   errors: string[];
+};
+type AccountBackupScrapedPage = {
+  section: AccountBackupSelection;
+  page: number;
+  url: string;
+  count: number;
 };
 
 const accountBackupOptions: Array<{ type: AccountBackupSelection; label: string }> = [
@@ -221,6 +227,7 @@ export default function Home() {
     const backupTypes = accountBackupTypes.length > 0 ? accountBackupTypes : accountBackupOptions.map((option) => option.type);
     let scraped: DoubanStatus[] = [];
     const errors: string[] = [];
+    const scrapedPages: AccountBackupScrapedPage[] = [];
     const results = new Map<AccountBackupSelection, AccountBackupSectionResult>();
 
     setAccountScrapeRunning(true);
@@ -232,26 +239,32 @@ export default function Home() {
       const sectionEnd = backupType === "profile" ? 1 : endPage;
       results.set(backupType, { section: backupType, count: 0, pages: 0, errors: [] });
       for (let page = sectionStart; page <= sectionEnd; page += 1) {
-        const label = `${backupType} p${page}`;
-        setAccountScrapeProgress(`Scraping ${label}... (${scraped.length} entries so far)`);
-        try {
-          const params = new URLSearchParams({ url: doubanAccountBackupPageUrl(userId, backupType, page) });
-          if (scrapeCookie) params.set("cookie", scrapeCookie);
-          const res = await fetch(`/api/account-backup?${params}`);
-          const data: { entries?: DoubanStatus[]; error?: string } = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "Account backup scrape failed");
-          scraped = [...scraped, ...(data.entries || [])];
-          const current = results.get(backupType)!;
-          results.set(backupType, { ...current, count: current.count + (data.entries?.length || 0), pages: current.pages + 1 });
-          setAccountScrapeResults(Array.from(results.values()));
-          if (page < sectionEnd) await new Promise((r) => setTimeout(r, 600));
-        } catch (e) {
-          const message = `${backupType} p${page}: ${messageFrom(e)}`;
-          errors.push(message);
-          const current = results.get(backupType)!;
-          results.set(backupType, { ...current, pages: current.pages + 1, errors: [...current.errors, message] });
-          setAccountScrapeResults(Array.from(results.values()));
-          setStatus(`Skipped ${message}`);
+        const urls = doubanAccountBackupPageUrls(userId, backupType, page);
+        for (const [urlIndex, url] of urls.entries()) {
+          const label = `${backupType} p${page}${urls.length > 1 ? `.${urlIndex + 1}` : ""}`;
+          setAccountScrapeProgress(`Scraping ${label}... (${scraped.length} entries so far)`);
+          try {
+            const params = new URLSearchParams({ url });
+            if (scrapeCookie) params.set("cookie", scrapeCookie);
+            const res = await fetch(`/api/account-backup?${params}`);
+            const data: { entries?: DoubanStatus[]; error?: string } = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Account backup scrape failed");
+            const pageEntries = data.entries || [];
+            scraped = [...scraped, ...pageEntries];
+            scrapedPages.push({ section: backupType, page, url, count: pageEntries.length });
+            const current = results.get(backupType)!;
+            results.set(backupType, { ...current, count: current.count + pageEntries.length, pages: current.pages + 1 });
+            setAccountScrapeResults(Array.from(results.values()));
+            if (page < sectionEnd || urlIndex < urls.length - 1) await new Promise((r) => setTimeout(r, 600));
+          } catch (e) {
+            const message = `${label}: ${messageFrom(e)}`;
+            errors.push(message);
+            scrapedPages.push({ section: backupType, page, url, count: 0 });
+            const current = results.get(backupType)!;
+            results.set(backupType, { ...current, pages: current.pages + 1, errors: [...current.errors, message] });
+            setAccountScrapeResults(Array.from(results.values()));
+            setStatus(`Skipped ${message}`);
+          }
         }
       }
     }
@@ -267,6 +280,8 @@ export default function Home() {
           selected_sections: backupTypes,
           start_page: startPage,
           end_page: endPage,
+          scraped_pages: scrapedPages,
+          errors,
           scraped_at: new Date().toISOString(),
         },
       },

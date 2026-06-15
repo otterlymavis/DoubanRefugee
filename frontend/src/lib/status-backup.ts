@@ -65,6 +65,11 @@ export type StatusBackupFile = {
   mimeType: string;
   content: string;
 };
+type BackupRunMetadata = {
+  scraped_pages?: unknown[];
+  errors?: unknown[];
+  [key: string]: unknown;
+};
 
 export const STATUS_STORAGE_KEY = "douban-refugee.status-library";
 
@@ -112,6 +117,10 @@ export function renderStatusBackupJson(statuses: DoubanStatus[]): StatusBackupFi
     throw new Error("No Douban account entries available for JSON backup.");
   }
 
+  const runMetadata = uniqueObjects(statuses.map((status) => status.metadata?.backup_run).filter(isBackupRunMetadata));
+  const scrapedPages = uniqueObjects(runMetadata.flatMap((run) => Array.isArray(run.scraped_pages) ? run.scraped_pages : []));
+  const errors = Array.from(new Set(runMetadata.flatMap((run) => Array.isArray(run.errors) ? run.errors.map(String) : []))).sort();
+
   return {
     filename: "douban-account-backup.json",
     mimeType: "application/json;charset=utf-8",
@@ -121,6 +130,9 @@ export function renderStatusBackupJson(statuses: DoubanStatus[]): StatusBackupFi
         client: "douban-refugee-web",
         entry_count: statuses.length,
         entry_types: Array.from(new Set(statuses.map((status) => status.entry_type || "status"))).sort(),
+        backup_runs: runMetadata,
+        scraped_pages: scrapedPages,
+        errors,
       },
       entries: statuses,
       statuses,
@@ -306,6 +318,16 @@ function numberOrUndefined(value: unknown) {
 
 function compactObject<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function uniqueObjects<T>(values: T[]): T[] {
+  const byJson = new Map<string, T>();
+  values.forEach((value) => byJson.set(JSON.stringify(value), value));
+  return Array.from(byJson.values());
+}
+
+function isBackupRunMetadata(value: unknown): value is BackupRunMetadata {
+  return Boolean(value && typeof value === "object");
 }
 
 function slugFor(value: string) {

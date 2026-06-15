@@ -1,6 +1,6 @@
 import { parse } from "node-html-parser";
 import type { CanonicalMedia, MediaType } from "./local-export";
-import type { DoubanBackupEntryType, DoubanStatus, StatusAuthor } from "./status-backup";
+import type { DoubanBackupEntryType, DoubanStatus, StatusAuthor, StatusComment } from "./status-backup";
 
 export type ScrapePageResult = {
   items: CanonicalMedia[];
@@ -101,6 +101,17 @@ export function doubanAccountBackupPageUrl(userId: string, backupType: AccountBa
   if (backupType === "doulist") return `https://www.douban.com/people/${encoded}/doulists/all?start=${start}`;
   if (backupType === "relationship") return `https://www.douban.com/people/${encoded}/contacts?start=${start}`;
   return `https://www.douban.com/people/${encoded}/events?start=${start}`;
+}
+
+export function doubanAccountBackupPageUrls(userId: string, backupType: AccountBackupType, page = 1): string[] {
+  if (backupType !== "relationship") return [doubanAccountBackupPageUrl(userId, backupType, page)];
+  const encoded = encodeURIComponent(userId);
+  const safePage = Math.max(1, Math.floor(page));
+  const start = (safePage - 1) * 10;
+  return [
+    `https://www.douban.com/people/${encoded}/contacts?start=${start}`,
+    `https://www.douban.com/people/${encoded}/rev_contacts?start=${start}`,
+  ];
 }
 
 export async function scrapeDoubanPage(url: string, cookie?: string): Promise<ScrapePageResult> {
@@ -207,6 +218,29 @@ function authorFromLink(link: ReturnType<ReturnType<typeof parse>["querySelector
   };
 }
 
+function parseVisibleComments(root: ReturnType<typeof parse> | null | undefined, pageUrl: string): StatusComment[] {
+  const nodes = root?.querySelectorAll?.(".lite-comment-item, .comment-item, .comments-items li, .reply-item, .reply-doc, .comment") || [];
+  const comments: StatusComment[] = [];
+  const seen = new Set<string>();
+
+  for (const node of nodes) {
+    const authorLink = node.querySelector?.(".lite-comment-item-author, .author, .user-name, a[href*='/people/']");
+    const contentNode = node.querySelector?.(".lite-comment-item-content, .reply-content, .content, blockquote, p");
+    const rawContent = compact(contentNode?.text || node.text || "");
+    const content = rawContent.replace(/^(回应|回复|评论)[:：]\s*/, "");
+    if (!content) continue;
+
+    const author = authorFromLink(authorLink || null);
+    if (author.link) author.link = absoluteUrl(author.link, pageUrl);
+    const key = `${author.name}:${content}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    comments.push({ author, content });
+  }
+
+  return comments;
+}
+
 function parseAccountEntries(html: string, pageUrl: string): DoubanStatus[] {
   const root = parse(html);
   const type = detectAccountEntryType(pageUrl);
@@ -257,6 +291,7 @@ function parseStatusEntries(root: ReturnType<typeof parse>, pageUrl: string): Do
     const sourceUrl = absoluteUrl(time?.getAttribute("href") || `/people/status/${id}/`, pageUrl);
     const content = compact(node.querySelector(".status-saying, .status-content, .text, blockquote p, .content p")?.text || "");
 
+    const comments = parseVisibleComments(node, pageUrl);
     entries.push({
       source_platform: "douban",
       source_id: id,
@@ -273,7 +308,8 @@ function parseStatusEntries(root: ReturnType<typeof parse>, pageUrl: string): Do
           alt: image.getAttribute("alt") || "image",
         }))
         .filter((image) => image.url),
-      comments: [],
+      comments,
+      comment_count: comments.length || undefined,
     });
   }
 
@@ -297,6 +333,7 @@ function parseListOrDetailEntries(root: ReturnType<typeof parse>, pageUrl: strin
     const content = compact(itemRoot?.querySelector?.(".abstract, .short-content, .content, .reply-doc, p")?.text || itemRoot?.text || title);
     if (!sourceId || (!title && !content)) continue;
 
+    const comments = parseVisibleComments(itemRoot, pageUrl);
     bySource.set(`${entryType}:${sourceId}`, {
       source_platform: "douban",
       source_id: sourceId,
@@ -310,7 +347,8 @@ function parseListOrDetailEntries(root: ReturnType<typeof parse>, pageUrl: strin
         url: absoluteUrl(image.getAttribute("data-original") || image.getAttribute("src") || "", pageUrl),
         alt: image.getAttribute("alt") || "image",
       })).filter((image) => image.url) || [],
-      comments: [],
+      comments,
+      comment_count: comments.length || undefined,
       metadata: metadataForEntry(itemRoot, entryType, pageUrl),
     });
   }
@@ -355,6 +393,7 @@ function parseDetailEntry(root: ReturnType<typeof parse>, pageUrl: string, pageT
   const content = compact(contentRoot?.text || "");
   if (!sourceId || (!title && !content)) return null;
 
+  const comments = parseVisibleComments(root, pageUrl);
   return {
     source_platform: "douban",
     source_id: sourceId,
@@ -368,7 +407,8 @@ function parseDetailEntry(root: ReturnType<typeof parse>, pageUrl: string, pageT
       url: absoluteUrl(image.getAttribute("data-original") || image.getAttribute("src") || "", pageUrl),
       alt: image.getAttribute("alt") || "image",
     })).filter((image) => image.url),
-    comments: [],
+    comments,
+    comment_count: comments.length || undefined,
     metadata: metadataForEntry(contentRoot, pageType, pageUrl),
   };
 }

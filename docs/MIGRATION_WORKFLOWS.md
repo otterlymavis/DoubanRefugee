@@ -44,8 +44,21 @@ Goodreads, RateYourMusic, Filmarks, or Notion credentials.
 | Goodreads | Upload/use `goodreads.csv` for completed books. |
 | RateYourMusic | Use `rateyourmusic.csv` as a music transfer helper. |
 | Filmarks | Use `filmarks.csv` as a movie transfer helper. |
-| Notion | Import `notion-douban-media.csv` or `notion-douban-statuses.csv` as databases. |
+| Notion | Import `notion-douban-media.csv` or `notion-douban-account-backup.csv` as databases. |
 | Backup | Keep JSON/Markdown locally for re-import or archive. |
+
+## Whole Account Backup
+
+1. Sign in to Douban in the browser session used by the web app or extension.
+2. Enter the Douban user ID in Account Backup.
+3. Keep the "Whole account" preset selected, or choose individual sections:
+   statuses, diaries, reviews, posts, replies, albums, doulists, profile/social,
+   and events.
+4. Set a conservative page range and run the scrape. The scraper records the
+   concrete URLs it requested and any skipped/error pages in backup metadata.
+5. Export `douban-account-backup.json` as the canonical archive.
+6. Optionally export Markdown for reading or `notion-douban-account-backup.csv`
+   for a Notion database.
 
 ## Letterboxd Transfer
 
