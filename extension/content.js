@@ -620,6 +620,12 @@ function accountBackupStartUrl(backupType, pageNumber, currentUrl = window.locat
   return sectionPath ? `https://www.douban.com/people/${encodeURIComponent(userId)}/${sectionPath}?start=${start}` : currentUrl;
 }
 
+function accountBackupStartUrls(backupType, pageNumber, currentUrl = window.location.href) {
+  const primary = accountBackupStartUrl(backupType, pageNumber, currentUrl);
+  if (backupType !== "relationship") return [primary];
+  return [primary, primary.replace("/contacts?", "/rev_contacts?")];
+}
+
 function statusPageNumber(url = window.location.href) {
   try {
     return Number(new URL(url).searchParams.get("p") || "1") || 1;
@@ -802,6 +808,7 @@ function extractListBackupEntries(documentLike = document, pageUrl = window.loca
       images: Array.from(root?.querySelectorAll?.("img") || [])
         .map((image) => ({ url: absoluteUrl(image.getAttribute("src") || image.getAttribute("data-original") || "", pageUrl), alt: image.getAttribute("alt") || "image" }))
         .filter((image) => image.url),
+      comments: extractVisibleComments(root || anchor),
       comment_count: parseCountNear(root || anchor, [/回应\(?(\d+)\)?/, /评论\(?(\d+)\)?/, /comment\(?(\d+)\)?/i]),
       metadata: metadataForBackupRoot(root, entryType, pageUrl),
     };
@@ -811,6 +818,25 @@ function extractListBackupEntries(documentLike = document, pageUrl = window.loca
   const detail = extractDetailBackupEntry(documentLike, pageUrl, backupType);
   if (detail) bySource.set(`${detail.entry_type}:${detail.source_id}`, detail);
   return Array.from(bySource.values());
+}
+
+function attachBackupRun(entries, { selectedTypes, startPage, endPage, pages = [], errors = [] }) {
+  const backupRun = {
+    user_id: pageOwnerId(),
+    selected_sections: selectedTypes,
+    start_page: startPage,
+    end_page: endPage,
+    scraped_pages: pages,
+    errors: errors.map((error) => typeof error === "string" ? error : `${error?.backup_type || "section"}: ${error?.error || String(error)}`),
+    scraped_at: new Date().toISOString(),
+  };
+  return entries.map((entry) => ({
+    ...entry,
+    metadata: {
+      ...(entry.metadata || {}),
+      backup_run: backupRun,
+    },
+  }));
 }
 
 async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, startPage, endPage, requestId }) {
@@ -848,15 +874,23 @@ async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, star
       if (cancelled) break;
       await delay(PAGE_DELAY_MS);
     }
-    const entries = Array.from(bySource.values());
+    const normalizedStart = Math.max(1, Math.floor(Number(startPage) || 1));
+    const normalizedEnd = Math.max(1, Math.floor(Number(endPage) || Number(startPage) || 1));
+    const entries = attachBackupRun(Array.from(bySource.values()), {
+      selectedTypes,
+      startPage: normalizedStart,
+      endPage: normalizedEnd,
+      pages,
+      errors,
+    });
     return {
       entries,
       statuses: entries,
       pages,
       cancelled,
       user_name: userNameFromStatusPage(),
-      start_page: Math.max(1, Math.floor(Number(startPage) || 1)),
-      end_page: Math.max(1, Math.floor(Number(endPage) || Number(startPage) || 1)),
+      start_page: normalizedStart,
+      end_page: normalizedEnd,
       backup_type: "all",
       backup_types: selectedTypes,
       errors,
@@ -865,7 +899,13 @@ async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, star
 
   if (backupType === "status") {
     const result = await scrapeDoubanStatuses({ startPage, endPage, requestId });
-    return { ...result, entries: result.statuses, backup_type: "status" };
+    const entries = attachBackupRun(result.statuses, {
+      selectedTypes,
+      startPage: result.start_page,
+      endPage: result.end_page,
+      pages: result.pages,
+    });
+    return { ...result, entries, statuses: entries, backup_type: "status" };
   }
 
   const start = Math.max(1, Math.floor(Number(startPage) || 1));
@@ -873,34 +913,47 @@ async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, star
   const bySource = new Map();
   const pages = [];
   let cancelled = false;
-  let nextUrl = accountBackupStartUrl(backupType, start);
+  const startUrls = accountBackupStartUrls(backupType, start);
+  const totalPages = (end - start + 1) * startUrls.length;
+  let completedPages = 0;
 
-  for (let pageNumber = start; pageNumber <= end && nextUrl; pageNumber += 1) {
-    const documentLike = nextUrl === window.location.href ? document : await fetchDoubanDocument(nextUrl);
-    const entries = extractListBackupEntries(documentLike, nextUrl, backupType);
-    for (const entry of entries) bySource.set(`${entry.entry_type}:${entry.source_id}`, entry);
-    pages.push({ page: pageNumber, url: nextUrl, title: documentLike.title, entry_count: entries.length });
+  for (const startUrl of startUrls) {
+    let nextUrl = startUrl;
+    for (let pageNumber = start; pageNumber <= end && nextUrl; pageNumber += 1) {
+      const documentLike = nextUrl === window.location.href ? document : await fetchDoubanDocument(nextUrl);
+      const entries = extractListBackupEntries(documentLike, nextUrl, backupType);
+      for (const entry of entries) bySource.set(`${entry.entry_type}:${entry.source_id}`, entry);
+      pages.push({ page: pageNumber, url: nextUrl, title: documentLike.title, entry_count: entries.length });
+      completedPages += 1;
 
-    chrome.runtime.sendMessage({
-      type: "DOUBAN_REFUGEE_STATUS_PROGRESS",
-      requestId,
-      page: pageNumber - start + 1,
-      total: end - start + 1,
-      entry_count: entries.length,
-    }).catch(() => {});
+      chrome.runtime.sendMessage({
+        type: "DOUBAN_REFUGEE_STATUS_PROGRESS",
+        requestId,
+        page: completedPages,
+        total: totalPages,
+        entry_count: entries.length,
+      }).catch(() => {});
 
-    const stop = await chrome.storage.local.get({ statusScrapeCancelRequestId: "" });
-    if (stop.statusScrapeCancelRequestId === requestId) {
-      cancelled = true;
-      break;
+      const stop = await chrome.storage.local.get({ statusScrapeCancelRequestId: "" });
+      if (stop.statusScrapeCancelRequestId === requestId) {
+        cancelled = true;
+        break;
+      }
+
+      const discoveredNextUrl = findNextPageUrl(documentLike, nextUrl);
+      nextUrl = backupType === "current" ? "" : discoveredNextUrl;
+      if (nextUrl && pageNumber < end) await delay(PAGE_DELAY_MS);
     }
-
-    const discoveredNextUrl = findNextPageUrl(documentLike, nextUrl);
-    nextUrl = backupType === "current" ? "" : discoveredNextUrl;
-    if (nextUrl && pageNumber < end) await delay(PAGE_DELAY_MS);
+    if (cancelled) break;
+    if (startUrls.length > 1) await delay(PAGE_DELAY_MS);
   }
 
-  const entries = Array.from(bySource.values());
+  const entries = attachBackupRun(Array.from(bySource.values()), {
+    selectedTypes,
+    startPage: start,
+    endPage: end,
+    pages,
+  });
   return {
     entries,
     statuses: entries,
