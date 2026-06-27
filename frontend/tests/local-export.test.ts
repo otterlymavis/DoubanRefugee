@@ -219,6 +219,11 @@ const statusBackup = parseStatusJson(JSON.stringify({
     },
   ],
 }));
+assert.throws(
+  () => parseStatusJson(JSON.stringify({ items: [{ source_platform: "douban", source_id: "1291557" }] })),
+  /entries\/statuses array/,
+  "account backup imports should not treat media items as account entries",
+);
 const mergedStatuses = mergeStatuses([statusBackup[0]], statusBackup);
 assert.equal(mergedStatuses.length, 3, "account backup imports should merge by Douban id and type without duplicates");
 const statusMarkdown = renderStatusMarkdown(mergedStatuses, "Example User");

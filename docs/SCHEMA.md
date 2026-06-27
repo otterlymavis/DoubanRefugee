@@ -102,7 +102,25 @@ same `entries` array.
       "comments": [{ "author": { "name": "Friend" }, "content": "Visible response text." }],
       "like_count": 2,
       "reshare_count": 1,
-      "comment_count": 1
+      "comment_count": 1,
+      "metadata": {
+        "backup_run": {
+          "user_id": "example",
+          "selected_sections": ["status", "diary", "review", "post", "album", "doulist", "profile", "relationship", "event"],
+          "start_page": 1,
+          "end_page": 3,
+          "scraped_pages": [
+            {
+              "section": "status",
+              "page": 1,
+              "url": "https://www.douban.com/people/example/statuses?p=1",
+              "count": 12
+            }
+          ],
+          "errors": ["event p1: HTTP 403"],
+          "scraped_at": "2026-05-28T12:00:00.000Z"
+        }
+      }
     }
   ]
 }
@@ -115,9 +133,16 @@ local library.
 `entry_type` may be `status`, `diary`, `review`, `post`, `reply`, `comment`,
 `album`, `photo`, `doulist`, `profile`, `relationship`, `event`, `note`,
 `topic`, or `unknown`. Entries may include `metadata.backup_run` with the
-selected sections, page range, user id, and scrape timestamp. The web app can
-re-import this JSON, merge entries by `entry_type/source_id`, and export a
-readable Markdown archive.
+selected sections, page range, user id, scrape timestamp, scraped page list, and
+per-page errors. The web app's JSON export also rolls these run details up into
+`source_profile.backup_runs`, `source_profile.scraped_pages`, and
+`source_profile.errors` so external importers can audit partial failures without
+reading every entry. The web app can re-import this JSON, merge entries by
+`entry_type/source_id`, and export a readable Markdown archive.
+
+Account backup importers should read account data from top-level `entries` or
+legacy `statuses` only. Top-level `items` is reserved for movie/book/music media
+records.
 
 ## Notion Exports
 

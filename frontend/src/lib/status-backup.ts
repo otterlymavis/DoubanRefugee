@@ -84,7 +84,7 @@ export function saveStatuses(statuses: DoubanStatus[]) {
 
 export function parseStatusJson(value: string): DoubanStatus[] {
   const parsed = JSON.parse(value);
-  const statuses = Array.isArray(parsed) ? parsed : parsed.entries || parsed.statuses || parsed.items;
+  const statuses = Array.isArray(parsed) ? parsed : parsed.entries || parsed.statuses;
   if (!Array.isArray(statuses)) {
     throw new Error("Account backup JSON must be an array or an object with an entries/statuses array.");
   }
