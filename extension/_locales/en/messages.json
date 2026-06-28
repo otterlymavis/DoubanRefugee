@@ -101,6 +101,9 @@
   "backupProfile": {
     "message": "Profile / social"
   },
+  "backupRelationships": {
+    "message": "Follows / followers"
+  },
   "backupEvents": {
     "message": "Events"
   },

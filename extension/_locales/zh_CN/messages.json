@@ -101,6 +101,9 @@
   "backupProfile": {
     "message": "资料 / 社交"
   },
+  "backupRelationships": {
+    "message": "关注 / 被关注"
+  },
   "backupEvents": {
     "message": "活动"
   },

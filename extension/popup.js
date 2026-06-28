@@ -1,7 +1,7 @@
 const DEFAULTS = {
   mediaType: "all",
   maxPages: "200",
-  backupTypes: ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "event"],
+  backupTypes: ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "relationship", "event"],
   webAppUrl: "http://localhost:3000"
 };
 
