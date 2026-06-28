@@ -144,6 +144,11 @@ Account backup importers should read account data from top-level `entries` or
 legacy `statuses` only. Top-level `items` is reserved for movie/book/music media
 records.
 
+Relationship entries use direction-aware IDs such as `following:<douban_uid>` or
+`follower:<douban_uid>` so mutual follows do not overwrite each other. The raw
+Douban user id is also preserved as `metadata.relationship_user_id`, with
+`metadata.relationship_direction` set to `following` or `follower`.
+
 ## Notion Exports
 
 The web and mobile apps can export `notion-douban-media.csv`, which Notion can

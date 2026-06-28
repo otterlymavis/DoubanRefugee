@@ -694,6 +694,12 @@ function detectBackupTypeFromUrl(url = window.location.href) {
   return "unknown";
 }
 
+function relationshipDirectionFromPageUrl(pageUrl = window.location.href) {
+  if (/\/rev_contacts(?:\?|\/|$)/.test(pageUrl)) return "follower";
+  if (/\/contacts(?:\?|\/|$)/.test(pageUrl)) return "following";
+  return "";
+}
+
 function normalizeBackupEntryType(detected, backupType) {
   if (backupType === "reply") return "reply";
   if (backupType === "album") return detected === "photo" ? "photo" : "album";
@@ -791,6 +797,9 @@ function extractListBackupEntries(documentLike = document, pageUrl = window.loca
   for (const anchor of anchors) {
     const href = absoluteUrl(anchor.getAttribute("href") || anchor.href, pageUrl);
     const entryType = normalizeBackupEntryType(detectBackupTypeFromUrl(href), backupType);
+    const rawSourceId = backupEntryIdFromUrl(href, entryType);
+    const relationshipDirection = entryType === "relationship" ? relationshipDirectionFromPageUrl(pageUrl) : "";
+    const sourceId = relationshipDirection ? `${relationshipDirection}:${rawSourceId}` : rawSourceId;
     const root = anchor.closest(".note-item, .review-item, .topic-list li, .olt tr, .item, .albumlst li, .photolst li, .doulist-item, .events-list li, .obu, li, tr, .article") || anchor.parentElement;
     const title = compact(anchor.textContent || "");
     const content = compact(root?.querySelector?.(".abstract, .short-content, .content, .reply-doc, p")?.textContent || root?.textContent || title);
@@ -798,7 +807,7 @@ function extractListBackupEntries(documentLike = document, pageUrl = window.loca
     const timeElement = root?.querySelector?.(".date, .time, .pub-date, .created_at, .color-green");
     const entry = {
       source_platform: "douban",
-      source_id: backupEntryIdFromUrl(href, entryType),
+      source_id: sourceId,
       source_url: href,
       entry_type: entryType,
       title,
@@ -810,7 +819,10 @@ function extractListBackupEntries(documentLike = document, pageUrl = window.loca
         .filter((image) => image.url),
       comments: extractVisibleComments(root || anchor),
       comment_count: parseCountNear(root || anchor, [/回应\(?(\d+)\)?/, /评论\(?(\d+)\)?/, /comment\(?(\d+)\)?/i]),
-      metadata: metadataForBackupRoot(root, entryType, pageUrl),
+      metadata: {
+        ...metadataForBackupRoot(root, entryType, pageUrl),
+        ...(relationshipDirection ? { relationship_direction: relationshipDirection, relationship_user_id: rawSourceId } : {}),
+      },
     };
     if (entry.source_id && (entry.title || entry.content)) bySource.set(`${entry.entry_type}:${entry.source_id}`, entry);
   }

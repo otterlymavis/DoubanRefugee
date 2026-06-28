@@ -264,6 +264,8 @@ globalThis.fetch = async (input) => {
     discussion: `<div class="topic-list"><ul><li><a href="https://www.douban.com/group/topic/123456/">Preserved discussion post</a><span class="date">2024-05-01</span><p>Post excerpt text.</p><div class="comment-item"><a class="author" href="https://www.douban.com/people/friend/">Friend</a><p>Visible discussion reply.</p></div></li></ul></div>`,
     photos: `<ul class="photolst"><li><a href="https://www.douban.com/photos/photo/222/">Photo title</a><img src="https://img.example/photo.jpg" alt="photo"><p>Photo caption.</p></li></ul>`,
     doulists: `<div class="doulist-item"><a href="https://www.douban.com/doulist/333/">Migration list</a><p>List description.</p></div>`,
+    contacts: `<div class="obu"><a href="https://www.douban.com/people/mutual/">Mutual Friend</a><p>Following text.</p></div>`,
+    rev_contacts: `<div class="obu"><a href="https://www.douban.com/people/mutual/">Mutual Friend</a><p>Follower text.</p></div>`,
     people: `<h1>Example User</h1><div class="user-intro">Profile bio.</div><img class="userface" src="https://img.example/avatar.jpg">`,
   };
   const body = url.includes("discussion")
@@ -272,7 +274,11 @@ globalThis.fetch = async (input) => {
       ? fixtures.photos
       : url.includes("doulists")
         ? fixtures.doulists
-        : fixtures.people;
+        : url.includes("rev_contacts")
+          ? fixtures.rev_contacts
+          : url.includes("contacts")
+            ? fixtures.contacts
+            : fixtures.people;
   return new Response(`<html><body>${body}</body></html>`, { status: 200, headers: { "content-type": "text/html" } });
 };
 Promise.all([
@@ -280,7 +286,9 @@ Promise.all([
   scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/photos?start=0"),
   scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/doulists/all?start=0"),
   scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/"),
-]).then(([postScrape, photoScrape, doulistScrape, profileScrape]) => {
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/contacts?start=0"),
+  scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/rev_contacts?start=0"),
+]).then(([postScrape, photoScrape, doulistScrape, profileScrape, followingScrape, followerScrape]) => {
   globalThis.fetch = originalFetch;
   assert.equal(postScrape.entries.length, 1, "account backup scraper should capture discussion posts");
   assert.equal(postScrape.entries[0].entry_type, "post");
@@ -293,6 +301,10 @@ Promise.all([
   assert.equal(doulistScrape.entries[0].source_id, "333");
   assert.equal(profileScrape.entries[0].entry_type, "profile");
   assertIncludes(profileScrape.entries[0].content, "Profile bio.");
+  assert.equal(followingScrape.entries[0].source_id, "following:mutual");
+  assert.equal(followingScrape.entries[0].metadata?.relationship_direction, "following");
+  assert.equal(followerScrape.entries[0].source_id, "follower:mutual");
+  assert.equal(followerScrape.entries[0].metadata?.relationship_direction, "follower");
 
   console.log("Local export tests passed for media transfer files, Notion CSVs, backup JSON, and Douban whole-account backups.");
 });

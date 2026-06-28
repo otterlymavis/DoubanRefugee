@@ -208,6 +208,12 @@ function detectAccountEntryType(url: string): DoubanBackupEntryType {
   return "unknown";
 }
 
+function relationshipDirectionFromPageUrl(pageUrl: string): "following" | "follower" | undefined {
+  if (/\/rev_contacts(?:\?|\/|$)/.test(pageUrl)) return "follower";
+  if (/\/contacts(?:\?|\/|$)/.test(pageUrl)) return "following";
+  return undefined;
+}
+
 function authorFromLink(link: ReturnType<ReturnType<typeof parse>["querySelector"]>): StatusAuthor {
   if (!link) return { name: "" };
   const href = link.getAttribute("href") || "";
@@ -327,7 +333,9 @@ function parseListOrDetailEntries(root: ReturnType<typeof parse>, pageUrl: strin
     if (!patterns.some((pattern) => rawHref.includes(pattern))) continue;
     const href = absoluteUrl(rawHref, pageUrl);
     const entryType = normalizeDetectedEntryType(detectAccountEntryType(href), pageType);
-    const sourceId = entryIdFromUrl(href);
+    const rawSourceId = entryIdFromUrl(href);
+    const relationshipDirection = entryType === "relationship" ? relationshipDirectionFromPageUrl(pageUrl) : undefined;
+    const sourceId = relationshipDirection ? `${relationshipDirection}:${rawSourceId}` : rawSourceId;
     const itemRoot = anchor.closest(".note-item, .review-item, .topic-list li, .olt tr, .item, .albumlst li, .photolst li, .doulist-item, .events-list li, .obu, li, tr, .article") || anchor.parentNode;
     const title = compact(anchor.text || "");
     const content = compact(itemRoot?.querySelector?.(".abstract, .short-content, .content, .reply-doc, p")?.text || itemRoot?.text || title);
@@ -349,7 +357,10 @@ function parseListOrDetailEntries(root: ReturnType<typeof parse>, pageUrl: strin
       })).filter((image) => image.url) || [],
       comments,
       comment_count: comments.length || undefined,
-      metadata: metadataForEntry(itemRoot, entryType, pageUrl),
+      metadata: {
+        ...metadataForEntry(itemRoot, entryType, pageUrl),
+        ...(relationshipDirection ? { relationship_direction: relationshipDirection, relationship_user_id: rawSourceId } : {}),
+      },
     });
   }
 
