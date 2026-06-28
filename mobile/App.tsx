@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { CanonicalMedia, Destination, MediaType, mergeItems, parseJsonItems, renderExport } from "./src/local-export";
 import { demoItems } from "./src/demoData";
@@ -110,9 +110,10 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.title}>DoubanRefugee</Text>
           <Text style={styles.subtitle}>Local files. No passwords.</Text>
@@ -177,8 +178,9 @@ export default function App() {
           {busy ? <ActivityIndicator color="#0f766e" /> : null}
           <Text style={styles.statusText}>{status}</Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
