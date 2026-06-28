@@ -875,7 +875,7 @@ async function scrapeDoubanAccountBackup({ backupType = "all", backupTypes, star
       await delay(PAGE_DELAY_MS);
     }
     const normalizedStart = Math.max(1, Math.floor(Number(startPage) || 1));
-    const normalizedEnd = Math.max(1, Math.floor(Number(endPage) || Number(startPage) || 1));
+    const normalizedEnd = Math.max(normalizedStart, Math.floor(Number(endPage) || normalizedStart));
     const entries = attachBackupRun(Array.from(bySource.values()), {
       selectedTypes,
       startPage: normalizedStart,
