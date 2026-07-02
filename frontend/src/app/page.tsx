@@ -88,7 +88,7 @@ const accountBackupOptions: Array<{ type: AccountBackupSelection; label: string 
   { type: "album", label: "Albums" },
   { type: "doulist", label: "Doulists" },
   { type: "profile", label: "Profile" },
-  { type: "relationship", label: "Social" },
+  { type: "relationship", label: "Follows" },
   { type: "event", label: "Events" },
 ];
 
@@ -287,7 +287,7 @@ export default function Home() {
       },
     }));
     const next = mergeStatuses(statuses, annotated);
-    updateStatuses(next, `Backed up ${annotated.length} account entrie(s) from ${backupTypes.length} section(s).${errors.length ? ` ${errors.length} section/page error(s).` : ""}`);
+    updateStatuses(next, `Backed up ${annotated.length} account entry/entries from ${backupTypes.length} section(s).${errors.length ? ` ${errors.length} section/page error(s).` : ""}`);
   }
 
   function exportFile(target: ExportTargetDef) {

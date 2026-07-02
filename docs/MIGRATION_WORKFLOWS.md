@@ -52,8 +52,8 @@ Goodreads, RateYourMusic, Filmarks, or Notion credentials.
 1. Sign in to Douban in the browser session used by the web app or extension.
 2. Enter the Douban user ID in Account Backup.
 3. Keep the "Whole account" preset selected, or choose individual sections:
-   statuses, diaries, reviews, posts, replies, albums, doulists, profile/social,
-   and events.
+   statuses, diaries, reviews, posts, replies, albums, doulists, profile data,
+   follows/followers, and events.
 4. Set a conservative page range and run the scrape. The scraper records the
    concrete URLs it requested and any skipped/error pages in backup metadata.
 5. Export `douban-account-backup.json` as the canonical archive.

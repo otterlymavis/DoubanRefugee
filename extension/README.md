@@ -8,8 +8,8 @@ the web app can convert into destination transfer files.
 It can also back up visible Douban account data into JSON for Markdown, Notion
 CSV, or canonical account backup JSON in the web app. Account backup covers
 statuses, diaries/notes, reviews, group posts, visible replies/comments, albums
-and photos, doulists, profile/social metadata, and events when Douban exposes
-them to the current browser session.
+and photos, doulists, profile metadata, visible follows/followers, and events
+when Douban exposes them to the current browser session.
 
 The extension uses the user's active browser session. It does not ask for or
 store passwords, and it does not log into destination websites. Destination
