@@ -11,8 +11,8 @@ No backend. No database. No account connection layer. No hosting bill.
 - Scrapes Douban movie, book, and music user pages, using `/collect` for
   completed items and `/wish` for wanted/watchlist entries.
 - Backs up visible Douban account data including statuses, diaries, reviews,
-  posts, replies/comments, albums/photos, doulists, profile/social metadata,
-  and events.
+  posts, replies/comments, albums/photos, doulists, profile metadata, visible
+  follows/followers, and events.
 - Preserves ratings, marked dates, tags, short reviews/comments, source links,
   poster URLs, release dates, creators, and countries when Douban exposes them
   on the user history page.

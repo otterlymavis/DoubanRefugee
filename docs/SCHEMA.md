@@ -106,7 +106,7 @@ same `entries` array.
       "metadata": {
         "backup_run": {
           "user_id": "example",
-          "selected_sections": ["status", "diary", "review", "post", "album", "doulist", "profile", "relationship", "event"],
+          "selected_sections": ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "relationship", "event"],
           "start_page": 1,
           "end_page": 3,
           "scraped_pages": [

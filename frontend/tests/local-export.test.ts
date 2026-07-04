@@ -289,7 +289,6 @@ Promise.all([
   scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/contacts?start=0"),
   scrapeDoubanAccountBackupPage("https://www.douban.com/people/example/rev_contacts?start=0"),
 ]).then(([postScrape, photoScrape, doulistScrape, profileScrape, followingScrape, followerScrape]) => {
-  globalThis.fetch = originalFetch;
   assert.equal(postScrape.entries.length, 1, "account backup scraper should capture discussion posts");
   assert.equal(postScrape.entries[0].entry_type, "post");
   assert.equal(postScrape.entries[0].source_id, "123456");
@@ -307,6 +306,11 @@ Promise.all([
   assert.equal(followerScrape.entries[0].metadata?.relationship_direction, "follower");
 
   console.log("Local export tests passed for media transfer files, Notion CSVs, backup JSON, and Douban whole-account backups.");
+}).catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+}).finally(() => {
+  globalThis.fetch = originalFetch;
 });
 
 function assertIncludes(content: string, expected: string) {
