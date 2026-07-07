@@ -4,6 +4,7 @@ const DEFAULTS = {
   backupTypes: ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "relationship", "event"],
   webAppUrl: "http://localhost:3000"
 };
+const OLD_DEFAULT_BACKUP_TYPES = ["status", "diary", "review", "post", "reply", "album", "doulist", "profile", "event"];
 
 let extractedPayload = undefined;
 
@@ -43,6 +44,16 @@ function normalizeUrl(value) {
   return (value || DEFAULTS.webAppUrl).replace(/\/+$/, "");
 }
 
+function sameStringSet(left, right) {
+  return left.length === right.length && left.every((value) => right.includes(value));
+}
+
+function backupTypesFromSettings(value) {
+  if (!Array.isArray(value)) return DEFAULTS.backupTypes;
+  if (sameStringSet(value, OLD_DEFAULT_BACKUP_TYPES)) return DEFAULTS.backupTypes;
+  return value;
+}
+
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error(chrome.i18n.getMessage("errorNoTab"));
@@ -54,7 +65,7 @@ async function loadSettings() {
   webAppUrlInput.value = stored.webAppUrl || DEFAULTS.webAppUrl;
   maxPagesInput.value = stored.maxPages || DEFAULTS.maxPages;
   mediaTypeInput.value = stored.mediaType || DEFAULTS.mediaType;
-  const selected = new Set(stored.backupTypes || DEFAULTS.backupTypes);
+  const selected = new Set(backupTypesFromSettings(stored.backupTypes));
   backupTypeInputs.forEach((input) => { input.checked = selected.has(input.value); });
   webAppLink.href = normalizeUrl(stored.webAppUrl || DEFAULTS.webAppUrl);
 }
