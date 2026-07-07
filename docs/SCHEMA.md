@@ -66,11 +66,11 @@ Optional fields:
 ## Account Backup JSON
 
 Account backup files preserve non-media Douban account data such as statuses,
-diaries/notes, reviews, posts, replies, albums/photos, doulists, profile/social
-metadata, and events. New files use `entries`; the app still reads legacy
-`statuses` files. The extension and web app can export one section at a time or
-a combined whole-account backup that merges all supported entry types into the
-same `entries` array.
+diaries/notes, reviews, posts, replies, albums/photos, doulists, profile
+metadata, visible follows/followers, and events. New files use `entries`; the
+app still reads legacy `statuses` files. The extension and web app can export
+one section at a time or a combined whole-account backup that merges all
+supported entry types into the same `entries` array.
 
 ```json
 {
